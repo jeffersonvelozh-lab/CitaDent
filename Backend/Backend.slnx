@@ -1,0 +1,7 @@
+<Solution>
+  <Project Path="Application/Application.csproj" Id="cd0c1668-43ac-4ff6-872a-9b6fcf91cb68" />
+  <Project Path="Domain/Domain.csproj" Id="d5da8a09-67c5-4747-be70-2210e11cd8d3" />
+  <Project Path="Infrastructure/Infrastructure.csproj" Id="a6ace93b-859b-46e5-8e53-c56d805a0930" />
+  <Project Path="Shared/Shared.csproj" Id="76b67e3b-b3f4-4e4d-b4a6-a964801de4e2" />
+  <Project Path="WebApiRest/WebApiRest.csproj" />
+</Solution>
