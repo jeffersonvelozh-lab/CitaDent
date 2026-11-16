@@ -1,4 +1,4 @@
-# AgendaDental
+# CitaDent
 
 API REST de AgendaDental, desarrollada con ASP.NET Core y .NET 10.
 
