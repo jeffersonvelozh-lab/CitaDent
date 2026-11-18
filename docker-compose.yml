@@ -9,7 +9,7 @@ services:
       # Solo para desarrollo local. Si no existe .env, usa el valor por defecto.
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-citadent_dev}
     ports:
-      - "5432:5432"
+      - "5433:5432"
     volumes:
       - citadent-pgdata:/var/lib/postgresql/data
     healthcheck:
