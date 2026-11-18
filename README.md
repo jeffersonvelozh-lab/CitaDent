@@ -1,7 +1,5 @@
 # CitaDent
 
-![CI](https://github.com/TU_USUARIO/CitaDent/actions/workflows/ci.yml/badge.svg)
-
 Aplicación web para la gestión de un consultorio odontológico: pacientes, agenda de citas sin cruces de odontólogo ni sillón, odontograma y, en una fase posterior, planes de tratamiento y cobros.
 
 Proyecto de portafolio. Los datos de pacientes que se usen en la demo son ficticios.
