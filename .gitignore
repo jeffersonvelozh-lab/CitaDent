@@ -1,0 +1,50 @@
+# Build output
+**/bin/
+**/obj/
+**/artifacts/
+**/TestResults/
+**/dist/
+**/out-tsc/
+**/tmp/
+**/bazel-out/
+
+# Node.js and Angular
+**/node_modules/
+**/npm-debug.log
+**/yarn-error.log
+**/.angular/cache/
+**/coverage/
+**/typings/
+**/__screenshots__/
+**/testem.log
+**/connect.lock
+**/libpeerconnection.log
+**/.sass-cache/
+
+# Local environment and logs
+**/.env
+**/.env.*
+**/*.log
+
+# Visual Studio and editors
+**/.vs/
+**/.idea/
+**/.settings/
+**/.history/
+**/.project
+**/.classpath
+**/.c9/
+**/*.user
+**/*.suo
+**/*.launch
+**/*.sublime-workspace
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+!.vscode/mcp.json
+
+# Operating system files
+**/.DS_Store
+**/Thumbs.db

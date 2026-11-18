@@ -1,0 +1,22 @@
+services:
+  db:
+    image: postgres:17
+    container_name: citadent-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: citadent
+      POSTGRES_USER: citadent
+      # Solo para desarrollo local. Si no existe .env, usa el valor por defecto.
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-citadent_dev}
+    ports:
+      - "5432:5432"
+    volumes:
+      - citadent-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U citadent -d citadent"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  citadent-pgdata:
