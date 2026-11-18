@@ -1,128 +1,75 @@
 # CitaDent
 
-CitaDent es una aplicación web para la gestión de citas odontológicas. El
-repositorio contiene la base inicial de un frontend desarrollado con Angular y
-una API REST desarrollada con ASP.NET Core.
+Aplicación web para la gestión de un consultorio odontológico: pacientes, agenda de citas sin cruces de odontólogo ni sillón, odontograma y, en una fase posterior, planes de tratamiento y cobros.
 
-Actualmente el proyecto es principalmente una estructura inicial: el backend
-incluye un controlador de ejemplo y las capas previstas para la aplicación, y
-el frontend contiene la aplicación generada con Angular. Aún no hay módulos de
-citas, pacientes, odontólogos ni integración completa entre frontend y backend.
+Proyecto de portafolio. Los datos de pacientes que se usen en la demo son ficticios.
 
-## Tecnologías
+## Stack
 
-- .NET 10 / ASP.NET Core
-- Angular 21 con Server-Side Rendering
-- TypeScript
-- OpenAPI
-- Docker
-- NPM
+| Capa | Tecnología |
+| --- | --- |
+| Backend | .NET 10, C#, arquitectura hexagonal (Domain, Application, Infrastructure, WebApiRest) |
+| Base de datos | PostgreSQL 17 con EF Core (Npgsql) |
+| Frontend | Angular, TypeScript |
+| Pruebas | xUnit |
+| Infraestructura local | Docker Compose |
 
-## Estructura del proyecto
+## Estructura
 
-```text
+```
 CitaDent/
-├── Backend/
-│   ├── Application/       Casos de uso y lógica de aplicación
-│   ├── Domain/            Entidades y reglas del dominio
-│   ├── Infrastructure/    Acceso a datos y servicios externos
-│   ├── Shared/            Elementos compartidos
-│   ├── WebApiRest/        API REST ASP.NET Core
-│   ├── Tests/             Proyectos y pruebas (pendiente de implementar)
-│   └── Backend.slnx       Solución del backend
-└── Frontend/
-    ├── src/app/           Componentes y configuración Angular
-    ├── src/main.ts        Arranque de la aplicación
-    └── package.json       Dependencias y scripts
+├─ Backend/
+│  ├─ Domain/          reglas de negocio, sin dependencias
+│  ├─ Application/     casos de uso y puertos
+│  ├─ Infrastructure/  EF Core, PostgreSQL y otros adaptadores
+│  ├─ Shared/          utilidades transversales
+│  ├─ WebApiRest/      API HTTP
+│  └─ Tests/           pruebas por capa
+├─ Frontend/           aplicación Angular
+├─ docs/               decisiones de arquitectura
+└─ docker-compose.yml  PostgreSQL para desarrollo
 ```
 
 ## Requisitos
 
-- .NET 10 SDK
-- Node.js compatible con Angular 21
-- npm
-- Docker (opcional)
+- SDK de .NET 10
+- Docker Desktop
+- Herramienta `dotnet-ef`: `dotnet tool install --global dotnet-ef --version "10.0.*"`
 
-## Ejecutar el backend
+## Cómo correr el backend
 
-Desde la raíz del repositorio:
+Desde la carpeta raíz, levanta la base de datos:
 
-```bash
+```powershell
+docker compose up -d
+```
+
+El contenedor expone PostgreSQL en el puerto **5433** para no chocar con una instalación local en el 5432.
+
+Luego, desde `Backend/`, aplica las migraciones y arranca la API:
+
+```powershell
 cd Backend
-dotnet restore Backend.slnx
-dotnet run --project WebApiRest/WebApiRest.csproj
+$env:ASPNETCORE_ENVIRONMENT = "Development"
+dotnet ef database update --project Infrastructure --startup-project WebApiRest
+dotnet run --project WebApiRest
 ```
 
-Con el perfil HTTP, la API queda disponible en `http://localhost:5080`.
+La API queda en `http://localhost:5080` y `http://localhost:5080/health` responde `Healthy` cuando llega a la base.
 
-Endpoints disponibles actualmente:
+La cadena de conexión de desarrollo está en `Backend/WebApiRest/appsettings.Development.json` (clave `ConnectionStrings:Default`). En otros entornos se sobreescribe con la variable `ConnectionStrings__Default`.
 
-- `GET /WeatherForecast`: devuelve datos de ejemplo.
-- `GET /openapi/v1.json`: documento OpenAPI disponible en modo Development.
+## Pruebas
 
-También puede abrirse la solución con Visual Studio o ejecutarse los proyectos
-desde su carpeta.
-
-## Ejecutar el frontend
-
-Desde la raíz del repositorio:
-
-```bash
-cd Frontend
-npm install
-npm start
-```
-
-La aplicación queda disponible en `http://localhost:4200`.
-
-Scripts disponibles:
-
-```bash
-npm start          # Servidor de desarrollo
-npm run build      # Compila la aplicación
-npm test           # Ejecuta las pruebas unitarias
-npm run watch      # Compilación continua
-```
-
-## Ejecutar el backend con Docker
-
-Desde la carpeta `Backend`:
-
-```bash
-docker build -f WebApiRest/Dockerfile -t citadent-api .
-docker run --rm -p 8080:8080 citadent-api
-```
-
-La API se expone en `http://localhost:8080`.
-
-## Compilar y probar
-
-Backend:
-
-```bash
+```powershell
 cd Backend
-dotnet build Backend.slnx
-dotnet test Backend.slnx
+dotnet test
 ```
 
-Frontend:
+## Estado
 
-```bash
-cd Frontend
-npm run build
-npm test
-```
+- [x] Fase 0: estructura, PostgreSQL con Docker, base del dominio, conexión de punta a punta
+- [ ] Fase 1: agenda, pacientes, acceso por roles, pantallas Angular, odontograma
+- [ ] Fase 2: planes de tratamiento, abonos, adjuntos y recordatorios
 
-## Estado actual
-
-El backend y el frontend compilan como proyectos base, pero todavía quedan por
-definir e implementar:
-
-- Modelos del dominio odontológico
-- Operaciones CRUD y API de citas
-- Gestión de pacientes y profesionales
-- Base de datos y repositorios
-- Autenticación y autorización
-- Validaciones y manejo centralizado de errores
-- Comunicación real entre Angular y ASP.NET Core
-- Diseño de la interfaz principal
+Las decisiones de diseño están en [docs/decisiones.md](docs/decisiones.md).
