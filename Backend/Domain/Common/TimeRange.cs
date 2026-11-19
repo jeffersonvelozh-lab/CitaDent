@@ -6,11 +6,16 @@ namespace Domain.Common;
 /// </summary>
 public sealed record TimeRange
 {
-    public DateTimeOffset Start { get; }
+    public DateTimeOffset Start { get; private set; }
 
-    public DateTimeOffset End { get; }
+    public DateTimeOffset End { get; private set; }
 
     public TimeSpan Duration => End - Start;
+
+    // Required by EF Core, which fills Start and End when it reads a row. Domain code uses the public constructor.
+    private TimeRange()
+    {
+    }
 
     public TimeRange(DateTimeOffset start, DateTimeOffset end)
     {

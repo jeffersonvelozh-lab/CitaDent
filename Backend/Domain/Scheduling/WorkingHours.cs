@@ -8,11 +8,16 @@ namespace Domain.Scheduling;
 /// </summary>
 public sealed record WorkingHours
 {
-    public DayOfWeek Day { get; }
+    public DayOfWeek Day { get; private set; }
 
-    public TimeOnly Start { get; }
+    public TimeOnly Start { get; private set; }
 
-    public TimeOnly End { get; }
+    public TimeOnly End { get; private set; }
+
+    // Required by EF Core, which fills the properties when it reads a row. Domain code uses the public constructor.
+    private WorkingHours()
+    {
+    }
 
     public WorkingHours(DayOfWeek day, TimeOnly start, TimeOnly end)
     {
