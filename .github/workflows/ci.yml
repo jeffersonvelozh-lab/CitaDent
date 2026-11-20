@@ -26,3 +26,18 @@ jobs:
 
       - name: Test
         run: dotnet test --no-build --configuration Release
+
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: citadent
+          POSTGRES_PASSWORD: citadent_dev
+          POSTGRES_DB: citadent
+        ports:
+          - 5433:5432
+        options: >-
+          --health-cmd "pg_isready -U citadent"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
