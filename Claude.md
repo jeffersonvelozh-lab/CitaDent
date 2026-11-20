@@ -14,7 +14,7 @@ Jefferson supervisa cada paso. Por eso:
 2. **Primero el plan, después el código.** Antes de escribir, responde con: qué archivos vas a crear o cambiar, qué pruebas agregarás y qué dudas tienes. Espera la aprobación de Jefferson.
 3. **Pruebas primero en el dominio.** Para reglas de negocio, escribe las pruebas antes o junto con el código. Cada regla RN-xx tiene al menos una prueba que falla sin ella.
 4. **Cambios pequeños.** Una tarea debería tocar pocos archivos. Si crece, detente y propón dividirla.
-5. **Rama por tarea:** `feat/1b-03-password-hasher`. Nunca trabajes en `main`.
+5. **Rama por stack backend y frontend:** como soy un unico desarrollador cada rama sera por el stack backend y frontend tendran sus propias ramas. Nunca trabajes en `main`.
 6. **Commits convencionales** (`feat:`, `fix:`, `test:`, `docs:`, `chore:`), en inglés, uno por unidad lógica. Haz commit solo en la rama local cuando Jefferson lo apruebe. **No hagas push, no abras PR ni fusiones** salvo que lo pida.
 7. **Al terminar la tarea, detente y entrega este resumen:**
    - Qué hiciste (2 a 4 líneas).
