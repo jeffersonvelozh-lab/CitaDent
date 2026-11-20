@@ -1,0 +1,67 @@
+# CitaDent: documento de traspaso
+
+> Pega este archivo al inicio de un chat nuevo y di: "Continuemos CitaDent desde la Fase 1b".
+> Última actualización: 2026-11-20, fin de la Fase 1a.
+
+## Qué es
+Aplicación web para un consultorio odontológico. Proyecto de portafolio (reinicio de MediCita). Autor: Jefferson (Ecuador; stack .NET/C#, Angular, SQL Server, TypeScript; aprendiendo Java).
+
+## Decisiones cerradas
+- .NET 10 + Angular + PostgreSQL 17 (EF Core 10 + Npgsql + EFCore.NamingConventions snake_case).
+- Arquitectura hexagonal: Domain (sin dependencias) ← Application ← Infrastructure; WebApiRest referencia Application + Infrastructure.
+- Código y base de datos en inglés; interfaz en español.
+- MVP: un procedimiento por cita. Despliegue local con Docker hasta tener el MVP; luego hosting gratuito.
+- El modelo soporta N dentistas y N sillones; el demo siembra 3 dentistas y 2 sillones.
+- Metodología: Scrum/Kanban ligero, iteraciones de 1 semana, cortes verticales, pruebas de dominio primero, rama por historia, commits convencionales, CI, bitácora en docs/decisiones.md.
+
+## Entorno local
+- `docker compose up -d`: contenedor `citadent-db` (postgres:17), puerto host **5433** (el 5432 lo ocupa un PostgreSQL 18 de Windows), usuario/base/clave `citadent` / `citadent` / `citadent_dev`.
+- Cadena de conexión: clave `ConnectionStrings:Default` en `appsettings.Development.json`.
+- `dotnet ef` se ejecuta desde `Backend/` con `--project Infrastructure --startup-project WebApiRest`.
+- `dotnet test`: 131 pruebas (121 de dominio + 10 de integración; las de integración necesitan la base del compose y crean una base temporal por clase de pruebas).
+
+## Estructura (Backend)
+- `Domain/`: Common (Entity, DomainException, TimeRange, Guard), Procedures, Patients (EcuadorianId), Scheduling (Dentist, WorkingHours, Chair, ScheduleBlock), Appointments (Appointment, AppointmentStatus, SchedulingContext).
+- `Infrastructure/`: DependencyInjection, Persistence/CitaDentDbContext, Configurations/*, Migrations (InitialCreate, AddCoreTables, AddAppointmentOverlapConstraints).
+- `Tests/`: Domain.Tests, Infrastructure.Tests, Application.Tests (vacío).
+- `Directory.Build.props`: net10.0, Nullable, TreatWarningsAsErrors.
+
+## Convenciones del dominio
+- Errores de negocio: `DomainException(code, message)` con códigos RN-xx o "VALIDATION".
+- `TimeRange` semiabierto [inicio, fin), UTC, `DateTimeOffset`.
+- IDs: `Guid.CreateVersion7()`.
+- La zona horaria (America/Guayaquil) y la fecha de "hoy" se pasan como parámetro; el dominio no tiene reloj.
+- Solo las citas en estado Scheduled (1) ocupan tiempo.
+- Auditoría: propiedades sombra CreatedAt/UpdatedAt rellenadas en SaveChanges con TimeProvider.
+
+## Reglas de negocio (RN-01..RN-19)
+Agenda RN-01..09, pacientes RN-10..12, clínico RN-13..15, catálogo RN-16, tratamientos RN-17, pagos RN-18..19.
+Pertenecen a Application: RN-06 (no agendar en el pasado), RN-09 (quién completa la cita), RN-11. El detalle completo está en el documento "CitaDent — Plan del proyecto" (Claude Docs).
+
+## Base de datos (estado actual)
+Tablas: procedures, patients, dentists, dentist_schedules, chairs, schedule_blocks, appointments.
+Restricciones EXCLUDE (btree_gist) `ex_appointments_dentist_no_overlap` y `ex_appointments_chair_no_overlap` sobre `tstzrange(starts_at, ends_at, '[)') WHERE status = 1`.
+
+## Hoja de ruta
+- Fase 0 (cimientos): hecha.
+- **Fase 1a (dominio + BD): hecha.**
+- Fase 1b (API + JWT con roles Reception/Dentist/Admin): siguiente.
+- Fase 1c (pantallas Angular), 1d (clínico/odontograma).
+- Fase 2: planes de tratamiento, pagos, adjuntos, recordatorios.
+
+## Siguiente paso: Fase 1b
+1. Entidad `User` + migración; FKs pendientes: `dentists.user_id`, `appointments.created_by_user_id`.
+2. Autenticación JWT con roles.
+3. Casos de uso en Application (RN-06, RN-09, RN-11, unicidad), cargando el `SchedulingContext` solo con registros cercanos.
+4. Endpoints: pacientes, catálogo, dentistas, sillones, agendar/cancelar citas.
+5. Pruebas de Application y de la API.
+
+## Límites conocidos
+- `updated_at` del dentista no cambia si solo cambia su horario semanal.
+- Faltan índices secundarios en las columnas de propiedades complejas.
+- Testcontainers no se usa (base temporal sobre el compose).
+
+## Cómo trabajamos
+- Respuestas y explicaciones en español.
+- Archivos listos para copiar, con la ubicación en el árbol de carpetas.
+- Pegar cualquier error completo para diagnosticarlo.
