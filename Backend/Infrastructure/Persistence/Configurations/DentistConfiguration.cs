@@ -1,4 +1,5 @@
 using Domain.Scheduling;
+using Domain.Users;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -13,8 +14,8 @@ public sealed class DentistConfiguration : IEntityTypeConfiguration<Dentist>
         builder.HasKey(d => d.Id);
         builder.Property(d => d.Id).ValueGeneratedNever();
 
-        // The foreign key to the users table is added when the User entity exists (phase 1b).
-        builder.Property(d => d.UserId);
+        // Each dentist signs in with exactly one user account; users are deactivated, never deleted.
+        builder.HasOne<User>().WithOne().HasForeignKey<Dentist>(d => d.UserId).OnDelete(DeleteBehavior.Restrict);
         builder.Property(d => d.FirstName).HasMaxLength(Dentist.NameMaxLength).IsRequired();
         builder.Property(d => d.LastName).HasMaxLength(Dentist.NameMaxLength).IsRequired();
         builder.Property(d => d.Specialty).HasMaxLength(Dentist.SpecialtyMaxLength);

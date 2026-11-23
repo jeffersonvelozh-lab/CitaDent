@@ -2,6 +2,7 @@ using Domain.Appointments;
 using Domain.Patients;
 using Domain.Procedures;
 using Domain.Scheduling;
+using Domain.Users;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -28,8 +29,8 @@ public sealed class AppointmentConfiguration : IEntityTypeConfiguration<Appointm
         builder.Property(a => a.Status).HasConversion<short>();
         builder.Property(a => a.CancelReason).HasMaxLength(Appointment.CancelReasonMaxLength);
 
-        // The foreign key to the users table is added when the User entity exists (phase 1b).
-        builder.Property(a => a.CreatedByUserId);
+        // The user who booked the appointment; users are deactivated, never deleted.
+        builder.HasOne<User>().WithMany().HasForeignKey(a => a.CreatedByUserId).OnDelete(DeleteBehavior.Restrict);
 
         builder.ComplexProperty(a => a.Slot, slot =>
         {

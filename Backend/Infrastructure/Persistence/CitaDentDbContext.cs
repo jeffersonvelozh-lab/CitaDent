@@ -3,6 +3,7 @@ using Domain.Common;
 using Domain.Patients;
 using Domain.Procedures;
 using Domain.Scheduling;
+using Domain.Users;
 using Microsoft.EntityFrameworkCore;
 
 namespace Infrastructure.Persistence;
@@ -24,6 +25,8 @@ public class CitaDentDbContext(DbContextOptions<CitaDentDbContext> options, Time
     public DbSet<ScheduleBlock> ScheduleBlocks => Set<ScheduleBlock>();
 
     public DbSet<Appointment> Appointments => Set<Appointment>();
+
+    public DbSet<User> Users => Set<User>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

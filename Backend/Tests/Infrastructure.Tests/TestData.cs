@@ -1,5 +1,6 @@
 using Domain.Appointments;
 using Domain.Scheduling;
+using Domain.Users;
 
 namespace Infrastructure.Tests;
 
@@ -13,10 +14,14 @@ internal static class TestData
     public static DateTimeOffset MondayAt(int hour, int minute) =>
         new(2026, 12, 7, hour, minute, 0, TimeSpan.FromHours(-5));
 
-    /// <summary>A dentist who works Monday 08:00-12:00 and 14:00-18:00.</summary>
-    public static Dentist NewDentist()
+    /// <summary>
+    /// A dentist who works Monday 08:00-12:00 and 14:00-18:00, with the user account it is linked to.
+    /// Nothing is saved: the caller saves both, because dentists.user_id references users.
+    /// </summary>
+    public static (User User, Dentist Dentist) NewDentist()
     {
-        var dentist = Dentist.Create(Guid.NewGuid(), "Carla", "Mora", "LIC-123");
+        var user = NewUser(UserRole.Dentist);
+        var dentist = Dentist.Create(user.Id, "Carla", "Mora", "LIC-123");
 
         dentist.SetWeeklySchedule(
         [
@@ -24,8 +29,12 @@ internal static class TestData
             new WorkingHours(DayOfWeek.Monday, new TimeOnly(14, 0), new TimeOnly(18, 0))
         ]);
 
-        return dentist;
+        return (user, dentist);
     }
+
+    // Emails are unique in the database, so each user gets its own.
+    public static User NewUser(UserRole role) =>
+        User.Create($"user-{Guid.NewGuid():N}@citadent.test", "Test User", "test-hash", role);
 
     // Chair names are unique in the database, so each test gets its own.
     public static Chair NewChair() => Chair.Create($"Chair {Guid.NewGuid():N}");
@@ -41,6 +50,6 @@ internal static class TestData
             chair,
             fixture.SeedProcedure,
             start,
-            Guid.NewGuid(),
+            fixture.SeedUser.Id,
             new SchedulingContext(Ecuador, [], []));
 }

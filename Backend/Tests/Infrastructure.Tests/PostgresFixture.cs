@@ -1,5 +1,6 @@
 using Domain.Patients;
 using Domain.Procedures;
+using Domain.Users;
 using Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
@@ -27,6 +28,9 @@ public sealed class PostgresFixture : IDisposable
     /// <summary>A 30-minute procedure already saved in the database.</summary>
     public Procedure SeedProcedure { get; }
 
+    /// <summary>A reception user already saved in the database, used as the creator of appointments.</summary>
+    public User SeedUser { get; }
+
     public PostgresFixture()
     {
         _adminConnectionString =
@@ -49,7 +53,9 @@ public sealed class PostgresFixture : IDisposable
             DocumentType.Cedula, "1710034065", "Ana", "Pérez", new DateOnly(1990, 5, 20), new DateOnly(2026, 11, 18));
         SeedProcedure = Procedure.Create("Cleaning", null, 30, 25m);
 
-        Save(SeedPatient, SeedProcedure);
+        SeedUser = User.Create("reception@citadent.test", "Seed Reception", "test-hash", UserRole.Reception);
+
+        Save(SeedPatient, SeedProcedure, SeedUser);
     }
 
     public CitaDentDbContext CreateContext()

@@ -1,6 +1,8 @@
 using Domain.Appointments;
 using Domain.Scheduling;
+using Domain.Users;
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
 using Xunit;
 using static Infrastructure.Tests.TestData;
 
@@ -14,8 +16,8 @@ public class PersistenceMappingTests(PostgresFixture fixture) : IClassFixture<Po
     [Fact]
     public void ADentist_IsSavedAndLoaded_WithItsWeeklySchedule()
     {
-        var dentist = NewDentist();
-        fixture.Save(dentist);
+        var (user, dentist) = NewDentist();
+        fixture.Save(user, dentist);
 
         using var context = fixture.CreateContext();
         var loaded = context.Dentists.Single(d => d.Id == dentist.Id);
@@ -32,8 +34,8 @@ public class PersistenceMappingTests(PostgresFixture fixture) : IClassFixture<Po
     [Fact]
     public void ReplacingTheWeeklySchedule_ReplacesTheRowsInTheDatabase()
     {
-        var dentist = NewDentist();
-        fixture.Save(dentist);
+        var (user, dentist) = NewDentist();
+        fixture.Save(user, dentist);
 
         using (var context = fixture.CreateContext())
         {
@@ -52,10 +54,10 @@ public class PersistenceMappingTests(PostgresFixture fixture) : IClassFixture<Po
     [Fact]
     public void AnAppointment_KeepsItsSlotAndStatus_WhenSavedAndLoaded()
     {
-        var dentist = NewDentist();
+        var (user, dentist) = NewDentist();
         var chair = NewChair();
         var appointment = ScheduleBlindly(fixture, dentist, chair, MondayAt(9, 0));
-        fixture.Save(dentist, chair, appointment);
+        fixture.Save(user, dentist, chair, appointment);
 
         using var context = fixture.CreateContext();
         var loaded = context.Appointments.Single(a => a.Id == appointment.Id);
@@ -106,5 +108,69 @@ public class PersistenceMappingTests(PostgresFixture fixture) : IClassFixture<Po
 
         Assert.Equal(createdAtFirst, createdAt);
         Assert.True(updatedAt >= createdAt);
+    }
+
+    [Fact]
+    public void AUser_IsSavedAndLoaded_WithAllItsData()
+    {
+        var user = NewUser(UserRole.Admin);
+        user.Deactivate();
+        fixture.Save(user);
+
+        using var context = fixture.CreateContext();
+        var loaded = context.Users.Single(u => u.Id == user.Id);
+
+        Assert.Equal(user.Email, loaded.Email);
+        Assert.Equal("Test User", loaded.FullName);
+        Assert.Equal("test-hash", loaded.PasswordHash);
+        Assert.Equal(UserRole.Admin, loaded.Role);
+        Assert.False(loaded.IsActive);
+    }
+
+    [Fact]
+    public void TheDatabaseRejects_TwoUsersWithTheSameEmail()
+    {
+        var first = NewUser(UserRole.Reception);
+        fixture.Save(first);
+
+        var duplicate = User.Create(first.Email, "Another User", "other-hash", UserRole.Dentist);
+
+        var ex = Assert.Throws<DbUpdateException>(() => fixture.Save(duplicate));
+        var postgres = Assert.IsType<PostgresException>(ex.InnerException);
+        Assert.Equal(PostgresErrorCodes.UniqueViolation, postgres.SqlState);
+        Assert.Equal("ix_users_email", postgres.ConstraintName);
+    }
+
+    [Fact]
+    public void TheDatabaseRejects_ADentistLinkedToAMissingUser()
+    {
+        var dentist = Dentist.Create(Guid.NewGuid(), "Luis", "Vera", "LIC-999");
+
+        var ex = Assert.Throws<DbUpdateException>(() => fixture.Save(dentist));
+        var postgres = Assert.IsType<PostgresException>(ex.InnerException);
+        Assert.Equal(PostgresErrorCodes.ForeignKeyViolation, postgres.SqlState);
+        Assert.Equal("fk_dentists_users_user_id", postgres.ConstraintName);
+    }
+
+    [Fact]
+    public void TheDatabaseRejects_AnAppointmentCreatedByAMissingUser()
+    {
+        var (user, dentist) = NewDentist();
+        var chair = NewChair();
+        fixture.Save(user, dentist, chair);
+
+        var appointment = Appointment.Schedule(
+            fixture.SeedPatient,
+            dentist,
+            chair,
+            fixture.SeedProcedure,
+            MondayAt(9, 0),
+            Guid.NewGuid(),
+            new SchedulingContext(Ecuador, [], []));
+
+        var ex = Assert.Throws<DbUpdateException>(() => fixture.Save(appointment));
+        var postgres = Assert.IsType<PostgresException>(ex.InnerException);
+        Assert.Equal(PostgresErrorCodes.ForeignKeyViolation, postgres.SqlState);
+        Assert.Equal("fk_appointments_users_created_by_user_id", postgres.ConstraintName);
     }
 }
