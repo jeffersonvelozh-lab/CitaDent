@@ -17,6 +17,7 @@ Aplicación web para un consultorio odontológico. Proyecto de portafolio (reini
 ## Entorno local
 - `docker compose up -d`: contenedor `citadent-db` (postgres:17), puerto host **5433** (el 5432 lo ocupa un PostgreSQL 18 de Windows), usuario/base/clave `citadent` / `citadent` / `citadent_dev`.
 - Cadena de conexión: clave `ConnectionStrings:Default` en `appsettings.Development.json`.
+- Clave de firma JWT (obligatoria; la API no arranca sin ella, mínimo 32 bytes). En desarrollo, una sola vez: `dotnet user-secrets set "Jwt:SigningKey" "<clave-larga-aleatoria>" --project WebApiRest` desde `Backend/`. Fuera de desarrollo, variable de entorno `Jwt__SigningKey`. Emisor, audiencia y expiración están en `appsettings.json`.
 - `dotnet ef` se ejecuta desde `Backend/` con `--project Infrastructure --startup-project WebApiRest`.
 - `dotnet test`: 131 pruebas (121 de dominio + 10 de integración; las de integración necesitan la base del compose y crean una base temporal por clase de pruebas).
 
