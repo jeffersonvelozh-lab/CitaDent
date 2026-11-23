@@ -27,7 +27,7 @@ Objetivo: una API que permita iniciar sesión por rol y gestionar pacientes, cat
 ### Bloque A: Usuarios y seguridad
 - `[x] 1b-01` **Entidad `User` y roles.** Dominio: `User` (email único, nombre, hash de contraseña, rol, activo) y enum `UserRole` (Admin, Reception, Dentist). CA: pruebas de dominio para creación, email inválido y activar/desactivar.
 - `[x] 1b-02` **Configuración EF y migración de `users`.** Agrega las FK pendientes `dentists.user_id` y `appointments.created_by_user_id`. CA: migración aplicada, `\d users` correcto, pruebas de integración existentes siguen en verde.
-- `[ ] 1b-03` **Puerto y adaptador de hash de contraseñas.** Interfaz `IPasswordHasher` en Application, implementación con PBKDF2 en Infrastructure. CA: pruebas de hash correcto, hash incorrecto y salt distinto por hash.
+- `[x] 1b-03` **Puerto y adaptador de hash de contraseñas.** Interfaz `IPasswordHasher` en Application, implementación con PBKDF2 en Infrastructure. CA: pruebas de hash correcto, hash incorrecto y salt distinto por hash.
 - `[ ] 1b-04` **Emisión de JWT y login.** `POST /api/auth/login` devuelve token con rol y expiración. CA: prueba de integración con credenciales válidas e inválidas; la clave de firma sale de configuración, no del código.
 - `[ ] 1b-05` **Autorización por rol y usuario administrador inicial.** Políticas por rol y siembra del primer Admin desde configuración. CA: un endpoint de prueba responde 401 sin token, 403 con rol insuficiente y 200 con el rol correcto.
 
