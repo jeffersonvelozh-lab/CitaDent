@@ -35,3 +35,9 @@ Local con Docker Compose hasta tener un producto mínimo viable; después, un ho
 
 ### Puerto 5433 para PostgreSQL en Docker
 **Motivo:** evitar el choque con instalaciones locales de PostgreSQL que usan el 5432.
+
+## 2026-11-23
+
+### Hash de contraseñas con PBKDF2 propio, sin ASP.NET Core Identity
+El puerto `IPasswordHasher` vive en Application y la implementación `Pbkdf2PasswordHasher` en Infrastructure. Usa PBKDF2 con HMAC-SHA256, 600 000 iteraciones (recomendación de OWASP), un salt aleatorio de 16 bytes por hash y una clave de 32 bytes. Se guarda en un solo texto: `PBKDF2-SHA256$<iteraciones>$<salt base64>$<hash base64>`, en la columna `users.password_hash` de tipo `text`.
+**Motivo:** solo usa la biblioteca base de .NET, sin agregar `Microsoft.Extensions.Identity.Core`. Como cada hash guarda su algoritmo y sus iteraciones, se pueden subir las iteraciones o cambiar de algoritmo más adelante sin invalidar las contraseñas ya guardadas. La comparación se hace en tiempo constante.
