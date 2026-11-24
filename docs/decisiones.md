@@ -47,3 +47,17 @@ El puerto `IPasswordHasher` vive en Application y la implementación `Pbkdf2Pass
 ### Autorización: autenticación exigida por defecto y políticas por grupo de roles
 La API valida el JWT con `JwtBearer` usando los mismos `JwtOptions` que el emisor (emisor, audiencia, clave, solo HS256). Una política de respaldo (*fallback*) exige usuario autenticado en todo endpoint; solo `/api/auth/login`, `/health` y el documento OpenAPI llevan `AllowAnonymous`. Políticas: `AdminOnly`, `StaffWithAgendaAccess` (Admin y Reception) y `ClinicalAccess` (Admin y Dentist). Tolerancia de reloj (`ClockSkew`) de 30 segundos en vez de los 5 minutos por defecto. Los claims se leen con sus nombres cortos (`sub`, `role`), sin el mapeo de ASP.NET.
 **Motivo:** un endpoint nuevo nace protegido aunque se olvide el atributo. Las políticas nombran necesidades del negocio (agenda, trabajo clínico) en vez de repetir listas de roles en cada controlador. Con 30 segundos, un token vencido deja de servir casi de inmediato.
+
+### Errores de la API: `ProblemDetails` con código y tabla única de estados HTTP
+Toda respuesta de error es `application/problem+json` con `status`, `title`, `detail` (en inglés), `traceId` y la extensión `code`, que el frontend traduce a español. `DomainException` se convierte en `DomainExceptionHandler` (un `IExceptionHandler`); cualquier otra excepción da un 500 genérico con `code = "INTERNAL"`, sin el mensaje ni la traza (que van solo al log), igual en todos los entornos. El 400 automático de `[ApiController]` (JSON mal formado, tipos incorrectos) también lleva `code = "VALIDATION"`. La tabla código → estado vive solo en `WebApiRest/Errors/ErrorStatusCodes.cs`:
+
+| Estado | Códigos |
+|---|---|
+| 400 | `VALIDATION` |
+| 401 | `AUTH-INVALID-CREDENTIALS` |
+| 403 | `RN-09`, `RN-15`, `RN-19` (reglas de permiso) |
+| 409 | `RN-02`, `RN-03`, `RN-05`, `RN-07`, `RN-11` (choque con lo que ya existe) |
+| 422 | `RN-01`, `RN-06`, `RN-08`, `RN-10`, `RN-12`, `RN-13`, `RN-14`, `RN-16`, `RN-17`, `RN-18` y cualquier código no listado |
+
+`RN-10` queda en 422 (documento inválido); el documento repetido de la tarea 1b-09 usará un código propio con 409. Los 401 y 403 de la autorización siguen sin cuerpo.
+**Motivo:** un solo formato de error para el frontend y un solo lugar para decidir el estado HTTP; una regla nueva nunca termina en 500, y un error inesperado no filtra datos internos.

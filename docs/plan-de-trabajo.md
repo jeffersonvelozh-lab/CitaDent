@@ -34,7 +34,7 @@ Objetivo: una API que permita iniciar sesión por rol y gestionar pacientes, cat
 - `[x] 1b-05b` **Usuario administrador inicial.** Siembra del primer Admin desde configuración (`Seed:Admin:*`, contraseña por user-secrets o variable de entorno, mínimo 12 caracteres), idempotente. CA: pruebas del caso de uso con dobles, del repositorio y una de integración donde el Admin sembrado inicia sesión y accede a un endpoint `AdminOnly`.
 
 ### Bloque B: Base de la capa Application y la API
-- `[ ] 1b-06` **Manejo de errores.** Middleware que convierte `DomainException` en `ProblemDetails` con el código RN-xx (400/409/422 según el caso) y un 500 genérico para el resto. CA: pruebas que verifican el código y el estado HTTP por regla.
+- `[x] 1b-06` **Manejo de errores.** Middleware que convierte `DomainException` en `ProblemDetails` con el código RN-xx (400/409/422 según el caso) y un 500 genérico para el resto. CA: pruebas que verifican el código y el estado HTTP por regla.
 - `[ ] 1b-07` **Convenciones de casos de uso.** Plantilla de caso de uso (comando, manejador, validación), registro por DI y `IUnitOfWork` o equivalente. CA: un caso de uso de ejemplo con prueba unitaria usando dobles.
 
 ### Bloque C: Catálogos y personas
