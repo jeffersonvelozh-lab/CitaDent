@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using Application;
 using Infrastructure;
 using Infrastructure.Persistence;
@@ -10,7 +11,9 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 
-builder.Services.AddControllers();
+// Enums travel as text ("Cedula", "Passport"), not numbers; a number or an unknown name is a 400.
+builder.Services.AddControllers().AddJsonOptions(options =>
+    options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter(allowIntegerValues: false)));
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
 builder.Services.AddInfrastructure(builder.Configuration);
