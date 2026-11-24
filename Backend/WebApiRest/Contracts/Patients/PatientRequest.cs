@@ -4,10 +4,11 @@ using Domain.Patients;
 namespace WebApiRest.Contracts.Patients;
 
 /// <summary>
-/// Body of POST /api/patients. DocumentType and BirthDate are required here because a missing value type
-/// would otherwise arrive as its default (for example 0001-01-01) and look valid.
+/// Body of POST /api/patients and PUT /api/patients/{id}. DocumentType and BirthDate are required here
+/// because a missing value type would otherwise arrive as its default (for example 0001-01-01) and look valid.
+/// On PUT the body is the full new data: optional fields left out are cleared.
 /// </summary>
-public sealed record CreatePatientRequest(
+public sealed record PatientRequest(
     [Required] DocumentType? DocumentType,
     string? DocumentNumber,
     string? FirstName,
