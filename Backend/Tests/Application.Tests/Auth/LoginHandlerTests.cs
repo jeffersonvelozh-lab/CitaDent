@@ -117,6 +117,15 @@ public class LoginHandlerTests
 
         public Task<User?> FindByEmailAsync(string email, CancellationToken cancellationToken = default) =>
             Task.FromResult(_users.SingleOrDefault(u => u.Email == email));
+
+        public Task<bool> AnyWithRoleAsync(UserRole role, CancellationToken cancellationToken = default) =>
+            Task.FromResult(_users.Any(u => u.Role == role));
+
+        public Task AddAsync(User user, CancellationToken cancellationToken = default)
+        {
+            _users.Add(user);
+            return Task.CompletedTask;
+        }
     }
 
     private sealed class FakePasswordHasher : IPasswordHasher

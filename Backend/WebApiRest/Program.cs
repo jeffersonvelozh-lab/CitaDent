@@ -1,8 +1,10 @@
 using Application.Auth;
+using Application.Users;
 using Infrastructure;
 using Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using WebApiRest.Security;
+using WebApiRest.Startup;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -15,10 +17,13 @@ builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddCitaDentAuthorization();
 // Use cases. Task 1b-07 moves these registrations to an AddApplication() extension.
 builder.Services.AddScoped<LoginHandler>();
+builder.Services.AddScoped<SeedInitialAdminHandler>();
 
 builder.Services.AddHealthChecks().AddDbContextCheck<CitaDentDbContext>("postgres");
 
 var app = builder.Build();
+
+await app.SeedInitialAdminAsync();
 
 app.MapHealthChecks("/health").AllowAnonymous();
 

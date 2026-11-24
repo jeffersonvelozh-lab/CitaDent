@@ -25,6 +25,10 @@ public sealed class CitaDentApiFactory : WebApplicationFactory<Program>
     public const string InactiveEmail = "inactivo@citadent.test";
     public const string Password = "Clave-Segura-123";
 
+    // The first admin, created by the API itself at startup from the Seed:Admin settings.
+    public const string SeedAdminEmail = "admin@citadent.test";
+    public const string SeedAdminPassword = "Clave-Admin-2026";
+
     private readonly PostgresFixture _database = new();
 
     public User ActiveUser { get; }
@@ -48,6 +52,9 @@ public sealed class CitaDentApiFactory : WebApplicationFactory<Program>
         builder.UseEnvironment("Testing");
         builder.UseSetting("ConnectionStrings:Default", _database.ConnectionString);
         builder.UseSetting("Jwt:SigningKey", SigningKey);
+        builder.UseSetting("Seed:Admin:Email", SeedAdminEmail);
+        builder.UseSetting("Seed:Admin:FullName", "Administración de Prueba");
+        builder.UseSetting("Seed:Admin:Password", SeedAdminPassword);
 
         // Adds the test-only endpoints used by the authorization tests.
         builder.ConfigureTestServices(services => services
