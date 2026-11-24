@@ -24,6 +24,9 @@ public sealed class DentistConfiguration : IEntityTypeConfiguration<Dentist>
 
         builder.HasIndex(d => d.UserId).IsUnique();
 
+        // Backstop for the license check in Application, which also ignores case.
+        builder.HasIndex(d => d.LicenseNumber).IsUnique();
+
         // The weekly schedule lives in its own table and is saved and loaded together with the dentist.
         builder.OwnsMany(d => d.WeeklySchedule, hours =>
         {

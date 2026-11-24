@@ -323,6 +323,10 @@ namespace Infrastructure.Persistence.Migrations
                     b.HasKey("Id")
                         .HasName("pk_dentists");
 
+                    b.HasIndex("LicenseNumber")
+                        .IsUnique()
+                        .HasDatabaseName("ix_dentists_license_number");
+
                     b.HasIndex("UserId")
                         .IsUnique()
                         .HasDatabaseName("ix_dentists_user_id");

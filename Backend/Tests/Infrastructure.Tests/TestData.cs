@@ -17,11 +17,12 @@ internal static class TestData
     /// <summary>
     /// A dentist who works Monday 08:00-12:00 and 14:00-18:00, with the user account it is linked to.
     /// Nothing is saved: the caller saves both, because dentists.user_id references users.
+    /// The license number is unique in the database, so each dentist gets its own.
     /// </summary>
     public static (User User, Dentist Dentist) NewDentist()
     {
         var user = NewUser(UserRole.Dentist);
-        var dentist = Dentist.Create(user.Id, "Carla", "Mora", "LIC-123");
+        var dentist = Dentist.Create(user.Id, "Carla", "Mora", $"LIC-{Guid.NewGuid():N}"[..20]);
 
         dentist.SetWeeklySchedule(
         [
