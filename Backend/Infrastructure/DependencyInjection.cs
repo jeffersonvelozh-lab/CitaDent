@@ -1,4 +1,5 @@
 using Application.Common;
+using Application.Procedures;
 using Application.Security;
 using Application.Users;
 using Infrastructure.Persistence;
@@ -41,6 +42,7 @@ public static class DependencyInjection
         services.AddSingleton<IAccessTokenIssuer, JwtAccessTokenIssuer>();
 
         services.AddScoped<IUserRepository, UserRepository>();
+        services.AddScoped<IProcedureRepository, ProcedureRepository>();
 
         return services;
     }

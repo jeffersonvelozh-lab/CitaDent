@@ -5,9 +5,12 @@ namespace Application;
 
 public static class DependencyInjection
 {
+    private static readonly Type[] HandlerInterfaces = [typeof(ICommandHandler<,>), typeof(IQueryHandler<,>)];
+
     /// <summary>
     /// Registers every use case of this assembly: each non-abstract class that implements
-    /// <see cref="ICommandHandler{TCommand, TResult}"/>, as itself and as that interface, scoped to the request.
+    /// <see cref="ICommandHandler{TCommand, TResult}"/> or <see cref="IQueryHandler{TQuery, TResult}"/>,
+    /// as itself and as that interface, scoped to the request.
     /// </summary>
     public static IServiceCollection AddApplication(this IServiceCollection services)
     {
@@ -15,7 +18,7 @@ public static class DependencyInjection
         {
             services.AddScoped(handler);
 
-            foreach (var contract in handler.GetInterfaces().Where(IsCommandHandlerInterface))
+            foreach (var contract in handler.GetInterfaces().Where(IsHandlerInterface))
             {
                 services.AddScoped(contract, provider => provider.GetRequiredService(handler));
             }
@@ -29,9 +32,10 @@ public static class DependencyInjection
         typeof(DependencyInjection).Assembly
             .GetTypes()
             .Where(type => type is { IsClass: true, IsAbstract: false }
-                && type.GetInterfaces().Any(IsCommandHandlerInterface))
+                && type.GetInterfaces().Any(IsHandlerInterface))
             .ToList();
 
-    private static bool IsCommandHandlerInterface(Type type) =>
-        type.IsGenericType && type.GetGenericTypeDefinition() == typeof(ICommandHandler<,>);
+    /// <summary>True for a closed ICommandHandler&lt;,&gt; or IQueryHandler&lt;,&gt;.</summary>
+    public static bool IsHandlerInterface(Type type) =>
+        type.IsGenericType && HandlerInterfaces.Contains(type.GetGenericTypeDefinition());
 }

@@ -15,6 +15,8 @@ public class ApplicationRegistrationTests(CitaDentApiFactory factory) : IClassFi
 
         Assert.Contains("LoginHandler", names);
         Assert.Contains("SeedInitialAdminHandler", names);
+        Assert.Contains("CreateProcedureHandler", names);
+        Assert.Contains("ListProceduresHandler", names); // A query handler.
     }
 
     [Theory]
@@ -24,8 +26,7 @@ public class ApplicationRegistrationTests(CitaDentApiFactory factory) : IClassFi
         using var scope = factory.Services.CreateScope();
 
         var byClass = scope.ServiceProvider.GetRequiredService(handlerType);
-        var contract = handlerType.GetInterfaces()
-            .Single(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(ICommandHandler<,>));
+        var contract = handlerType.GetInterfaces().Single(Application.DependencyInjection.IsHandlerInterface);
         var byInterface = scope.ServiceProvider.GetRequiredService(contract);
 
         // Same instance within a request.
