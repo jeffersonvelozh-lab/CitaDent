@@ -18,8 +18,9 @@ Aplicación web para un consultorio odontológico. Proyecto de portafolio (reini
 - `docker compose up -d`: contenedor `citadent-db` (postgres:17), puerto host **5433** (el 5432 lo ocupa un PostgreSQL 18 de Windows), usuario/base/clave `citadent` / `citadent` / `citadent_dev`.
 - Cadena de conexión: clave `ConnectionStrings:Default` en `appsettings.Development.json`.
 - Clave de firma JWT (obligatoria; la API no arranca sin ella, mínimo 32 bytes). En desarrollo, una sola vez: `dotnet user-secrets set "Jwt:SigningKey" "<clave-larga-aleatoria>" --project WebApiRest` desde `Backend/`. Fuera de desarrollo, variable de entorno `Jwt__SigningKey`. Emisor, audiencia y expiración están en `appsettings.json`.
+- Primer administrador (opcional): la API lo crea al arrancar si no existe ningún Admin. En desarrollo, una sola vez desde `Backend/`: `dotnet user-secrets set "Seed:Admin:Email" "admin@citadent.local" --project WebApiRest`, lo mismo con `Seed:Admin:FullName` y `Seed:Admin:Password` (mínimo 12 caracteres). Fuera de desarrollo, variables `Seed__Admin__Email`, `Seed__Admin__FullName` y `Seed__Admin__Password`. Sin las tres claves se omite con un aviso en el log; con una contraseña corta la API no arranca.
 - `dotnet ef` se ejecuta desde `Backend/` con `--project Infrastructure --startup-project WebApiRest`.
-- `dotnet test`: 226 pruebas (145 de dominio, 11 de Application, 44 de Infrastructure y 26 de la API en `Tests/WebApiRest.Tests`; las de Infrastructure y API necesitan la base del compose y crean una base temporal por clase de pruebas).
+- `dotnet test`: 240 pruebas (145 de dominio, 21 de Application, 46 de Infrastructure y 28 de la API en `Tests/WebApiRest.Tests`; las de Infrastructure y API necesitan la base del compose y crean una base temporal por clase de pruebas).
 
 ## Estructura (Backend)
 - `Domain/`: Common (Entity, DomainException, TimeRange, Guard), Procedures, Patients (EcuadorianId), Scheduling (Dentist, WorkingHours, Chair, ScheduleBlock), Appointments (Appointment, AppointmentStatus, SchedulingContext).
