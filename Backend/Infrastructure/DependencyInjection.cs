@@ -1,10 +1,12 @@
 using Application.Common;
+using Application.Patients;
 using Application.Procedures;
 using Application.Security;
 using Application.Users;
 using Infrastructure.Persistence;
 using Infrastructure.Persistence.Repositories;
 using Infrastructure.Security;
+using Infrastructure.Time;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -23,6 +25,10 @@ public static class DependencyInjection
             ?? throw new InvalidOperationException("Connection string 'Default' is not configured.");
 
         services.TryAddSingleton(TimeProvider.System);
+
+        // Resolved now, so an unknown time zone stops the start.
+        var clinicTimeZone = ClinicTimeZone.Resolve(configuration);
+        services.AddSingleton(provider => new ClinicClock(provider.GetRequiredService<TimeProvider>(), clinicTimeZone));
 
         services.AddDbContext<CitaDentDbContext>(options => options
             .UseNpgsql(connectionString)
@@ -43,6 +49,7 @@ public static class DependencyInjection
 
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<IProcedureRepository, ProcedureRepository>();
+        services.AddScoped<IPatientRepository, PatientRepository>();
 
         return services;
     }
