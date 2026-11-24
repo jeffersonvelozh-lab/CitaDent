@@ -1,5 +1,6 @@
 using System.Collections.Frozen;
 using Application.Auth;
+using Application.Common;
 
 namespace WebApiRest.Errors;
 
@@ -21,6 +22,10 @@ public static class ErrorStatusCodes
 
         // Failed login.
         [LoginHandler.InvalidCredentialsCode] = StatusCodes.Status401Unauthorized,
+
+        // Generic use case errors: a record that does not exist, a unique value already taken.
+        [ApplicationErrorCodes.NotFound] = StatusCodes.Status404NotFound,
+        [ApplicationErrorCodes.Duplicate] = StatusCodes.Status409Conflict,
 
         // Permission rules: who completes an appointment, who sees clinical notes, who voids a payment.
         ["RN-09"] = StatusCodes.Status403Forbidden,

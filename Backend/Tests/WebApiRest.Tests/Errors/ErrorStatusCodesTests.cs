@@ -8,6 +8,8 @@ public class ErrorStatusCodesTests
     [Theory]
     [InlineData("VALIDATION", 400)]
     [InlineData("AUTH-INVALID-CREDENTIALS", 401)]
+    [InlineData("NOT-FOUND", 404)]
+    [InlineData("DUPLICATE", 409)]
     [InlineData("RN-01", 422)]
     [InlineData("RN-02", 409)]
     [InlineData("RN-03", 409)]
