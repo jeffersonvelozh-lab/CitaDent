@@ -19,8 +19,9 @@ Aplicación web para un consultorio odontológico. Proyecto de portafolio (reini
 - Cadena de conexión: clave `ConnectionStrings:Default` en `appsettings.Development.json`.
 - Clave de firma JWT (obligatoria; la API no arranca sin ella, mínimo 32 bytes). En desarrollo, una sola vez: `dotnet user-secrets set "Jwt:SigningKey" "<clave-larga-aleatoria>" --project WebApiRest` desde `Backend/`. Fuera de desarrollo, variable de entorno `Jwt__SigningKey`. Emisor, audiencia y expiración están en `appsettings.json`.
 - Primer administrador (opcional): la API lo crea al arrancar si no existe ningún Admin. En desarrollo, una sola vez desde `Backend/`: `dotnet user-secrets set "Seed:Admin:Email" "admin@citadent.local" --project WebApiRest`, lo mismo con `Seed:Admin:FullName` y `Seed:Admin:Password` (mínimo 12 caracteres). Fuera de desarrollo, variables `Seed__Admin__Email`, `Seed__Admin__FullName` y `Seed__Admin__Password`. Sin las tres claves se omite con un aviso en el log; con una contraseña corta la API no arranca.
+- Endpoints disponibles: `POST /api/auth/login` (anónimo); `/api/procedures` (GET para cualquier rol; POST, PUT y `/{id}/activate|deactivate` solo Admin).
 - `dotnet ef` se ejecuta desde `Backend/` con `--project Infrastructure --startup-project WebApiRest`.
-- `dotnet test`: 313 pruebas (145 de dominio, 44 de Application, 55 de Infrastructure y 69 de la API en `Tests/WebApiRest.Tests`; las de Infrastructure y API necesitan la base del compose y crean una base temporal por clase de pruebas).
+- `dotnet test`: 335 pruebas (145 de dominio, 44 de Application, 55 de Infrastructure y 91 de la API en `Tests/WebApiRest.Tests`; las de Infrastructure y API necesitan la base del compose y crean una base temporal por clase de pruebas).
 
 ## Estructura (Backend)
 - `Domain/`: Common (Entity, DomainException, TimeRange, Guard), Procedures, Patients (EcuadorianId), Scheduling (Dentist, WorkingHours, Chair, ScheduleBlock), Appointments (Appointment, AppointmentStatus, SchedulingContext).

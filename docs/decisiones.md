@@ -55,8 +55,9 @@ Toda respuesta de error es `application/problem+json` con `status`, `title`, `de
 |---|---|
 | 400 | `VALIDATION` |
 | 401 | `AUTH-INVALID-CREDENTIALS` |
+| 404 | `NOT-FOUND` (agregado en 1b-08b) |
 | 403 | `RN-09`, `RN-15`, `RN-19` (reglas de permiso) |
-| 409 | `RN-02`, `RN-03`, `RN-05`, `RN-07`, `RN-11` (choque con lo que ya existe) |
+| 409 | `RN-02`, `RN-03`, `RN-05`, `RN-07`, `RN-11` (choque con lo que ya existe) y `DUPLICATE` (agregado en 1b-08b) |
 | 422 | `RN-01`, `RN-06`, `RN-08`, `RN-10`, `RN-12`, `RN-13`, `RN-14`, `RN-16`, `RN-17`, `RN-18` y cualquier código no listado |
 
 `RN-10` queda en 422 (documento inválido); el documento repetido de la tarea 1b-09 usará un código propio con 409. Los 401 y 403 de la autorización siguen sin cuerpo.
