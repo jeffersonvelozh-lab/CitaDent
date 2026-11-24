@@ -1,11 +1,13 @@
 using Application.Auth;
 using Domain.Common;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using WebApiRest.Contracts.Auth;
 
 namespace WebApiRest.Controllers;
 
 [ApiController]
+[AllowAnonymous]
 [Route("api/auth")]
 public sealed class AuthController(LoginHandler loginHandler) : ControllerBase
 {

@@ -1,8 +1,13 @@
+using System.Net.Http.Headers;
 using Domain.Users;
 using Infrastructure.Security;
 using Infrastructure.Tests;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.AspNetCore.TestHost;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
+using WebApiRest.Tests.Fakes;
 
 namespace WebApiRest.Tests;
 
@@ -43,6 +48,43 @@ public sealed class CitaDentApiFactory : WebApplicationFactory<Program>
         builder.UseEnvironment("Testing");
         builder.UseSetting("ConnectionStrings:Default", _database.ConnectionString);
         builder.UseSetting("Jwt:SigningKey", SigningKey);
+
+        // Adds the test-only endpoints used by the authorization tests.
+        builder.ConfigureTestServices(services => services
+            .AddControllers()
+            .AddApplicationPart(typeof(AuthorizationProbeController).Assembly));
+    }
+
+    /// <summary>A client that sends a valid token for a user with the given role.</summary>
+    public HttpClient CreateClientWithToken(UserRole role) => CreateClientWithToken(IssueToken(role));
+
+    public HttpClient CreateClientWithToken(string token)
+    {
+        var client = CreateClient();
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        return client;
+    }
+
+    /// <summary>
+    /// Issues a token the same way the API does. Change the key, the issuer or the clock to get tokens
+    /// the API must reject. The user does not need to exist in the database: authorization reads only the token.
+    /// </summary>
+    public static string IssueToken(
+        UserRole role,
+        string signingKey = SigningKey,
+        string issuer = Issuer,
+        TimeProvider? clock = null)
+    {
+        var settings = new JwtOptions
+        {
+            Issuer = issuer,
+            Audience = Audience,
+            SigningKey = signingKey,
+            ExpirationMinutes = 60
+        };
+        var user = User.Create($"{role.ToString().ToLowerInvariant()}@citadent.test", $"Test {role}", "hash", role);
+
+        return new JwtAccessTokenIssuer(Options.Create(settings), clock ?? TimeProvider.System).Issue(user).Value;
     }
 
     protected override void Dispose(bool disposing)
