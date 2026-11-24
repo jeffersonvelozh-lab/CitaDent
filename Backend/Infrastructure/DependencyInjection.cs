@@ -1,3 +1,4 @@
+using Application.Chairs;
 using Application.Common;
 using Application.Patients;
 using Application.Procedures;
@@ -50,6 +51,7 @@ public static class DependencyInjection
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<IProcedureRepository, ProcedureRepository>();
         services.AddScoped<IPatientRepository, PatientRepository>();
+        services.AddScoped<IChairRepository, ChairRepository>();
 
         return services;
     }
