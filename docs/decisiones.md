@@ -82,3 +82,10 @@ Cada caso de uso vive en `Application/<Funcionalidad>/`: un comando (`record` in
 ### Enums como texto en la API
 La API lee y escribe los enums por su nombre (`"documentType": "Cedula"`), con `JsonStringEnumConverter(allowIntegerValues: false)` en toda la API: un número o un nombre desconocido es un 400 `VALIDATION`. Los campos obligatorios de tipo valor (por ejemplo `documentType` y `birthDate` del paciente) son anulables en el contrato y llevan `[Required]` en el parámetro del `record`, para que un campo ausente sea un 400 y no llegue como su valor por defecto (`0001-01-01`).
 **Motivo:** el contrato se lee solo, el frontend no depende de los números internos de los enums y un dato faltante nunca se guarda con un valor inventado.
+
+### Alta de odontólogos con su usuario y licencia única
+- El alta de un odontólogo (`RegisterDentistHandler`) crea en la misma operación el `User` con rol Dentist (email, contraseña con hash, nombre completo = nombre + apellido) y el `Dentist` ligado a él, y guarda una sola vez: nunca queda un odontólogo sin usuario ni un usuario odontólogo sin ficha. La contraseña exige el mismo mínimo que la del Admin inicial (12 caracteres). Un email ya usado da `DUPLICATE` sin repetir el email en el mensaje.
+- La licencia profesional es única **sin distinguir mayúsculas**, validada en Application (`lower()` en SQL) con `DUPLICATE`; la migración `AddDentistLicenseUniqueIndex` agrega el índice único `ix_dentists_license_number` como respaldo, con la misma limitación de `23505` que los nombres.
+- El horario semanal se reemplaza completo: EF borra las filas anteriores de `dentist_schedules` e inserta las nuevas. Una lista vacía deja al odontólogo sin horario. Los cruces dan `VALIDATION` (400), porque es un dato mal formado y no una regla RN.
+- Editar los datos del odontólogo y activarlo o desactivarlo (con su usuario) queda para una tarea aparte.
+**Motivo:** el plan no tiene gestión de usuarios y un odontólogo sin usuario no puede iniciar sesión; crear ambos a la vez evita estados a medias. Dos odontólogos con la misma licencia son, en la práctica, la misma persona registrada dos veces.
