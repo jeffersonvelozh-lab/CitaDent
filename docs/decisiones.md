@@ -73,3 +73,8 @@ Cada caso de uso vive en `Application/<Funcionalidad>/`: un comando (`record` in
 - La unicidad de nombres (procedimientos, y luego sillones) se valida en Application **sin distinguir mayúsculas** (`lower(name)` en SQL). El índice único de la base distingue mayúsculas y queda como respaldo; si dos solicitudes simultáneas crean el mismo nombre, la base las detiene con `23505` y por ahora sale 500. La traducción de `23505` a `DUPLICATE` se hará en 1b-15 junto con la de `23P01`.
 - Los procedimientos no se borran: se desactivan, porque las citas guardan su id.
 **Motivo:** un solo par de códigos para el frontend en lugar de uno por entidad; "Limpieza" y "limpieza" son el mismo procedimiento para el personal de la clínica.
+
+### Fecha de la clínica (`ClinicClock`) y unicidad del documento del paciente
+- `ClinicClock` (Application) da `Now` y `Today` en la zona de la clínica a partir de `TimeProvider`. La zona sale de `Clinic:TimeZone` (por defecto `America/Guayaquil`) y se resuelve al arrancar: una zona desconocida detiene la API. Es una clase, no un puerto, porque solo depende de tipos de .NET. Los casos de uso le piden "hoy" y lo pasan al dominio; nunca se usa la fecha UTC como "hoy" (cerca de la medianoche en Ecuador, UTC ya es el día siguiente).
+- El documento del paciente es único por **tipo y número** (igual que el índice), comparado después de que el dominio lo normaliza; un duplicado da `DUPLICATE` (409). El mensaje de error no repite el número, porque es un dato personal y los mensajes llegan a los logs.
+- El plan decía "unicidad del documento (RN-11)"; la unicidad es RN-10. RN-11 (no borrar, desactivar) pasa a la tarea 1b-10.
