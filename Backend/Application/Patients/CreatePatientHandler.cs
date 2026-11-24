@@ -28,7 +28,8 @@ public sealed class CreatePatientHandler(IPatientRepository patients, ClinicCloc
             command.GuardianName,
             command.GuardianPhone);
 
-        if (await patients.DocumentExistsAsync(patient.DocumentType, patient.DocumentNumber, cancellationToken))
+        if (await patients.DocumentExistsAsync(
+                patient.DocumentType, patient.DocumentNumber, excludingId: null, cancellationToken))
         {
             throw PatientErrors.DuplicateDocument();
         }
