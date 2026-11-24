@@ -35,7 +35,7 @@ Objetivo: una API que permita iniciar sesión por rol y gestionar pacientes, cat
 
 ### Bloque B: Base de la capa Application y la API
 - `[x] 1b-06` **Manejo de errores.** Middleware que convierte `DomainException` en `ProblemDetails` con el código RN-xx (400/409/422 según el caso) y un 500 genérico para el resto. CA: pruebas que verifican el código y el estado HTTP por regla.
-- `[ ] 1b-07` **Convenciones de casos de uso.** Plantilla de caso de uso (comando, manejador, validación), registro por DI y `IUnitOfWork` o equivalente. CA: un caso de uso de ejemplo con prueba unitaria usando dobles.
+- `[x] 1b-07` **Convenciones de casos de uso.** Plantilla de caso de uso (comando, manejador, validación), registro por DI y `IUnitOfWork` o equivalente. CA: un caso de uso de ejemplo con prueba unitaria usando dobles.
 
 ### Bloque C: Catálogos y personas
 - `[ ] 1b-08` **Procedimientos (CRUD).** Crear, editar, listar, activar/desactivar (RN-16). CA: pruebas de Application e integración de los endpoints; solo Admin escribe.
