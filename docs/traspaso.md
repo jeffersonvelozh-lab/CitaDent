@@ -21,7 +21,7 @@ Aplicación web para un consultorio odontológico. Proyecto de portafolio (reini
 - Primer administrador (opcional): la API lo crea al arrancar si no existe ningún Admin. En desarrollo, una sola vez desde `Backend/`: `dotnet user-secrets set "Seed:Admin:Email" "admin@citadent.local" --project WebApiRest`, lo mismo con `Seed:Admin:FullName` y `Seed:Admin:Password` (mínimo 12 caracteres). Fuera de desarrollo, variables `Seed__Admin__Email`, `Seed__Admin__FullName` y `Seed__Admin__Password`. Sin las tres claves se omite con un aviso en el log; con una contraseña corta la API no arranca.
 - Endpoints disponibles: `POST /api/auth/login` (anónimo); `/api/procedures` (GET para cualquier rol; POST, PUT y `/{id}/activate|deactivate` solo Admin). `/api/patients` (POST para Admin y Reception; `GET /{id}` para cualquier rol). Los enums viajan como texto.
 - `dotnet ef` se ejecuta desde `Backend/` con `--project Infrastructure --startup-project WebApiRest`.
-- `dotnet test`: 386 pruebas (145 de dominio, 63 de Application, 59 de Infrastructure y 119 de la API en `Tests/WebApiRest.Tests`; las de Infrastructure y API necesitan la base del compose y crean una base temporal por clase de pruebas).
+- `dotnet test`: 437 pruebas (152 de dominio, 89 de Application, 74 de Infrastructure y 122 de la API en `Tests/WebApiRest.Tests`; las de Infrastructure y API necesitan la base del compose y crean una base temporal por clase de pruebas).
 
 ## Estructura (Backend)
 - `Domain/`: Common (Entity, DomainException, TimeRange, Guard), Procedures, Patients (EcuadorianId), Scheduling (Dentist, WorkingHours, Chair, ScheduleBlock), Appointments (Appointment, AppointmentStatus, SchedulingContext).
@@ -35,7 +35,7 @@ Aplicación web para un consultorio odontológico. Proyecto de portafolio (reini
 - IDs: `Guid.CreateVersion7()`.
 - La zona horaria (America/Guayaquil) y la fecha de "hoy" se pasan como parámetro; el dominio no tiene reloj. En Application, `ClinicClock` da `Today` y `Now` en la zona de `Clinic:TimeZone` (`appsettings.json`).
 - Solo las citas en estado Scheduled (1) ocupan tiempo.
-- Casos de uso: comando + manejador `ICommandHandler<,>` (registro automático con `AddApplication()`); se guarda una vez al final con `IUnitOfWork`, los repositorios no guardan. Ejemplo: `SeedInitialAdminHandler`. Consultas: `IQueryHandler<,>`. Errores de Application: `NOT-FOUND` y `DUPLICATE` (`ApplicationErrorCodes`).
+- Casos de uso: comando + manejador `ICommandHandler<,>` (registro automático con `AddApplication()`); se guarda una vez al final con `IUnitOfWork`, los repositorios no guardan. Ejemplo: `SeedInitialAdminHandler`. Consultas: `IQueryHandler<,>`. Errores de Application: `NOT-FOUND` y `DUPLICATE` (`ApplicationErrorCodes`). Listas paginadas: `PagedResult<T>` y `Paging` (página desde 1, tamaño 1..100); una página más allá del final devuelve ítems vacíos con el total.
 - Auditoría: propiedades sombra CreatedAt/UpdatedAt rellenadas en SaveChanges con TimeProvider.
 
 ## Reglas de negocio (RN-01..RN-19)
@@ -64,6 +64,7 @@ Restricciones EXCLUDE (btree_gist) `ex_appointments_dentist_no_overlap` y `ex_ap
 - `updated_at` del dentista no cambia si solo cambia su horario semanal.
 - Faltan índices secundarios en las columnas de propiedades complejas.
 - Testcontainers no se usa (base temporal sobre el compose).
+- La búsqueda de pacientes distingue tildes ("perez" no encuentra "Pérez") y no tiene índice de texto: ignorar tildes requiere `unaccent` y acelerarla `pg_trgm`, ambas con migración.
 
 ## Cómo trabajamos
 - Respuestas y explicaciones en español.
