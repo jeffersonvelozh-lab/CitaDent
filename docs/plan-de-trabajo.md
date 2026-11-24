@@ -38,7 +38,8 @@ Objetivo: una API que permita iniciar sesión por rol y gestionar pacientes, cat
 - `[x] 1b-07` **Convenciones de casos de uso.** Plantilla de caso de uso (comando, manejador, validación), registro por DI y `IUnitOfWork` o equivalente. CA: un caso de uso de ejemplo con prueba unitaria usando dobles.
 
 ### Bloque C: Catálogos y personas
-- `[ ] 1b-08` **Procedimientos (CRUD).** Crear, editar, listar, activar/desactivar (RN-16). CA: pruebas de Application e integración de los endpoints; solo Admin escribe.
+- `[x] 1b-08a` **Procedimientos: casos de uso y repositorio.** Crear, editar, activar/desactivar, consultar y listar (RN-16) en Application; `IQueryHandler`; códigos `NOT-FOUND` y `DUPLICATE`; nombre único sin distinguir mayúsculas; `ProcedureRepository` en Infrastructure. CA: pruebas de Application con dobles y del repositorio; cambiar la duración no altera citas ya creadas.
+- `[ ] 1b-08b` **Procedimientos: endpoints.** `GET/POST/PUT /api/procedures`, `POST /api/procedures/{id}/activate|deactivate`; cualquier rol lee, solo Admin escribe; `NOT-FOUND` → 404 y `DUPLICATE` → 409. CA: pruebas de integración de los endpoints (201, 200, 204, 401, 403, 404, 409, 422).
 - `[ ] 1b-09` **Pacientes: crear y consultar.** RN-10, RN-12, y unicidad del documento (RN-11 en Application). CA: no se puede repetir documento; el menor exige representante.
 - `[ ] 1b-10` **Pacientes: buscar y editar.** Búsqueda por nombre o documento con paginación. CA: pruebas de búsqueda parcial, sin resultados y página fuera de rango.
 - `[ ] 1b-11` **Sillones (CRUD).** Nombre único, activar/desactivar. CA: pruebas de unicidad y estado.
