@@ -1,3 +1,4 @@
+using Application.Common;
 using Domain.Appointments;
 using Domain.Common;
 using Domain.Patients;
@@ -8,8 +9,9 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Infrastructure.Persistence;
 
+/// <summary>Also the unit of work: SaveChangesAsync writes every pending change in one transaction.</summary>
 public class CitaDentDbContext(DbContextOptions<CitaDentDbContext> options, TimeProvider timeProvider)
-    : DbContext(options)
+    : DbContext(options), IUnitOfWork
 {
     private const string CreatedAtProperty = "CreatedAt";
     private const string UpdatedAtProperty = "UpdatedAt";

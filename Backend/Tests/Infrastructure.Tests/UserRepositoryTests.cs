@@ -52,20 +52,27 @@ public class UserRepositoryTests(PostgresFixture fixture) : IClassFixture<Postgr
     }
 
     [Fact]
-    public async Task Add_SavesTheUser()
+    public async Task Add_WritesNothingUntilTheUnitOfWorkSaves()
     {
         var user = NewUser(UserRole.Admin);
 
-        await using (var context = fixture.CreateContext())
-        {
-            await new UserRepository(context).AddAsync(user);
-        }
+        await using var context = fixture.CreateContext();
+        new UserRepository(context).Add(user);
 
-        await using var readContext = fixture.CreateContext();
-        var found = await new UserRepository(readContext).FindByEmailAsync(user.Email);
+        Assert.Null(await FindWithAFreshContext(user.Email));
 
+        // The DbContext is the unit of work (IUnitOfWork).
+        await context.SaveChangesAsync();
+
+        var found = await FindWithAFreshContext(user.Email);
         Assert.NotNull(found);
         Assert.Equal(user.Id, found.Id);
         Assert.Equal(user.PasswordHash, found.PasswordHash);
+    }
+
+    private async Task<User?> FindWithAFreshContext(string email)
+    {
+        await using var context = fixture.CreateContext();
+        return await new UserRepository(context).FindByEmailAsync(email);
     }
 }

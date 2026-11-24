@@ -13,9 +13,6 @@ public interface IUserRepository
     /// <summary>True when at least one user, active or not, has the role.</summary>
     Task<bool> AnyWithRoleAsync(UserRole role, CancellationToken cancellationToken = default);
 
-    /// <summary>
-    /// Adds the user and saves at once. Temporary: when the unit of work arrives (task 1b-07),
-    /// saving moves there.
-    /// </summary>
-    Task AddAsync(User user, CancellationToken cancellationToken = default);
+    /// <summary>Marks the user to be inserted; it is written when the use case calls IUnitOfWork.SaveChangesAsync.</summary>
+    void Add(User user);
 }

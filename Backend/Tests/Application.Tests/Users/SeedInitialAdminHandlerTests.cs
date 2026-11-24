@@ -1,3 +1,4 @@
+using Application.Common;
 using Application.Security;
 using Application.Users;
 using Domain.Common;
@@ -10,8 +11,9 @@ public class SeedInitialAdminHandlerTests
     private const string Password = "Clave-Admin-2026";
 
     private readonly FakeUserRepository _users = new();
+    private readonly FakeUnitOfWork _unitOfWork = new();
 
-    private SeedInitialAdminHandler Handler => new(_users, new FakePasswordHasher());
+    private SeedInitialAdminHandler Handler => new(_users, new FakePasswordHasher(), _unitOfWork);
 
     private static SeedInitialAdminCommand Command(string email = "Admin@CitaDent.test", string password = Password) =>
         new(email, "Administración", password);
@@ -27,6 +29,14 @@ public class SeedInitialAdminHandlerTests
         Assert.Equal("Administración", admin.FullName);
         Assert.Equal(UserRole.Admin, admin.Role);
         Assert.True(admin.IsActive);
+    }
+
+    [Fact]
+    public async Task Handle_WhenItCreatesTheAdmin_SavesExactlyOnce()
+    {
+        await Handler.HandleAsync(Command());
+
+        Assert.Equal(1, _unitOfWork.SaveCount);
     }
 
     [Fact]
@@ -48,6 +58,7 @@ public class SeedInitialAdminHandlerTests
 
         Assert.Equal(SeedInitialAdminResult.AdminAlreadyExists, result);
         Assert.Empty(_users.Added);
+        Assert.Equal(0, _unitOfWork.SaveCount);
     }
 
     [Fact]
@@ -61,6 +72,7 @@ public class SeedInitialAdminHandlerTests
 
         Assert.Equal(SeedInitialAdminResult.AdminAlreadyExists, result);
         Assert.Empty(_users.Added);
+        Assert.Equal(0, _unitOfWork.SaveCount);
     }
 
     [Fact]
@@ -72,6 +84,7 @@ public class SeedInitialAdminHandlerTests
 
         Assert.Equal(SeedInitialAdminResult.EmailAlreadyInUse, result);
         Assert.Empty(_users.Added);
+        Assert.Equal(0, _unitOfWork.SaveCount);
     }
 
     [Theory]
@@ -84,6 +97,7 @@ public class SeedInitialAdminHandlerTests
 
         Assert.Equal("VALIDATION", ex.Code);
         Assert.Empty(_users.Added);
+        Assert.Equal(0, _unitOfWork.SaveCount);
     }
 
     [Fact]
@@ -103,6 +117,7 @@ public class SeedInitialAdminHandlerTests
 
         Assert.Equal("VALIDATION", ex.Code);
         Assert.Empty(_users.Added);
+        Assert.Equal(0, _unitOfWork.SaveCount);
     }
 
     private sealed class FakeUserRepository : IUserRepository
@@ -121,10 +136,17 @@ public class SeedInitialAdminHandlerTests
         public Task<bool> AnyWithRoleAsync(UserRole role, CancellationToken cancellationToken = default) =>
             Task.FromResult(All.Any(u => u.Role == role));
 
-        public Task AddAsync(User user, CancellationToken cancellationToken = default)
+        public void Add(User user) => Added.Add(user);
+    }
+
+    private sealed class FakeUnitOfWork : IUnitOfWork
+    {
+        public int SaveCount { get; private set; }
+
+        public Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
         {
-            Added.Add(user);
-            return Task.CompletedTask;
+            SaveCount++;
+            return Task.FromResult(1);
         }
     }
 

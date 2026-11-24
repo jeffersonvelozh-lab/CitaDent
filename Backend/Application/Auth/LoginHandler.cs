@@ -1,3 +1,4 @@
+using Application.Common;
 using Application.Security;
 using Application.Users;
 using Domain.Common;
@@ -9,10 +10,9 @@ namespace Application.Auth;
 /// inactive user, wrong password) gives the same error, so a caller cannot learn which emails exist.
 /// </summary>
 public sealed class LoginHandler(IUserRepository users, IPasswordHasher passwordHasher, IAccessTokenIssuer tokenIssuer)
+    : ICommandHandler<LoginCommand, LoginResult>
 {
     public const string InvalidCredentialsCode = "AUTH-INVALID-CREDENTIALS";
-
-    private const string ValidationCode = "VALIDATION";
 
     public async Task<LoginResult> HandleAsync(LoginCommand command, CancellationToken cancellationToken = default)
     {
@@ -20,7 +20,7 @@ public sealed class LoginHandler(IUserRepository users, IPasswordHasher password
 
         if (string.IsNullOrWhiteSpace(command.Email) || string.IsNullOrEmpty(command.Password))
         {
-            throw new DomainException(ValidationCode, "Email and password are required.");
+            throw new DomainException(DomainException.ValidationCode, "Email and password are required.");
         }
 
         var email = command.Email.Trim().ToLowerInvariant();

@@ -12,9 +12,5 @@ public sealed class UserRepository(CitaDentDbContext context) : IUserRepository
     public Task<bool> AnyWithRoleAsync(UserRole role, CancellationToken cancellationToken = default) =>
         context.Users.AnyAsync(u => u.Role == role, cancellationToken);
 
-    public async Task AddAsync(User user, CancellationToken cancellationToken = default)
-    {
-        context.Users.Add(user);
-        await context.SaveChangesAsync(cancellationToken);
-    }
+    public void Add(User user) => context.Users.Add(user);
 }

@@ -6,7 +6,7 @@ namespace Domain.Common;
 /// </summary>
 internal static class Guard
 {
-    public const string ValidationCode = "VALIDATION";
+    public const string ValidationCode = DomainException.ValidationCode;
 
     public static string NotBlank(string? value, string field, int maxLength)
     {

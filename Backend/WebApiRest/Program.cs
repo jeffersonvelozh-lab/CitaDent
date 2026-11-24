@@ -1,5 +1,4 @@
-using Application.Auth;
-using Application.Users;
+using Application;
 using Infrastructure;
 using Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
@@ -17,9 +16,7 @@ builder.Services.AddOpenApi();
 builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddCitaDentAuthorization();
 builder.Services.AddCitaDentErrorHandling();
-// Use cases. Task 1b-07 moves these registrations to an AddApplication() extension.
-builder.Services.AddScoped<LoginHandler>();
-builder.Services.AddScoped<SeedInitialAdminHandler>();
+builder.Services.AddApplication();
 
 builder.Services.AddHealthChecks().AddDbContextCheck<CitaDentDbContext>("postgres");
 

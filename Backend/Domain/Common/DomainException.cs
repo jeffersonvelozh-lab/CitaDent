@@ -6,6 +6,9 @@ namespace Domain.Common;
 /// </summary>
 public class DomainException : Exception
 {
+    /// <summary>Code for missing or malformed data (HTTP 400), as opposed to a business rule (RN-xx).</summary>
+    public const string ValidationCode = "VALIDATION";
+
     public string Code { get; }
 
     public DomainException(string code, string message) : base(message)

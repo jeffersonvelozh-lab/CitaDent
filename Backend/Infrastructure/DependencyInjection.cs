@@ -1,3 +1,4 @@
+using Application.Common;
 using Application.Security;
 using Application.Users;
 using Infrastructure.Persistence;
@@ -25,6 +26,9 @@ public static class DependencyInjection
         services.AddDbContext<CitaDentDbContext>(options => options
             .UseNpgsql(connectionString)
             .UseSnakeCaseNamingConvention());
+
+        // The same DbContext instance of the request, so repositories and the unit of work share changes.
+        services.AddScoped<IUnitOfWork>(provider => provider.GetRequiredService<CitaDentDbContext>());
 
         // Stateless, so one instance serves the whole application.
         services.AddSingleton<IPasswordHasher, Pbkdf2PasswordHasher>();
