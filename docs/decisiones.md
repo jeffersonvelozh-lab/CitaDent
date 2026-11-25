@@ -89,3 +89,11 @@ La API lee y escribe los enums por su nombre (`"documentType": "Cedula"`), con `
 - El horario semanal se reemplaza completo: EF borra las filas anteriores de `dentist_schedules` e inserta las nuevas. Una lista vacía deja al odontólogo sin horario. Los cruces dan `VALIDATION` (400), porque es un dato mal formado y no una regla RN.
 - Editar los datos del odontólogo y activarlo o desactivarlo (con su usuario) queda para la tarea 1b-12c; la gestión de cuentas de usuario (correo, contraseña, activar/desactivar, usuarios de Recepción y Admin) para la 1b-12d. Ninguna regla RN las cubre.
 **Motivo:** el plan no tiene gestión de usuarios y un odontólogo sin usuario no puede iniciar sesión; crear ambos a la vez evita estados a medias. Dos odontólogos con la misma licencia son, en la práctica, la misma persona registrada dos veces.
+
+### Edición de odontólogos (1b-12c) y nueva división de tareas
+- La tarea 1b-12c se dividió en dos: **1b-12c** (editar datos) y **1b-12d** (activar/desactivar con su usuario). La gestión de cuentas de usuario pasa a **1b-12e**. Esto reemplaza la numeración de la entrada anterior.
+- `PUT /api/dentists/{id}` reemplaza los datos completos: nombre, apellido, licencia y especialidad. Si la especialidad falta o viene vacía, se borra. El correo, la contraseña, el estado y el horario no se editan aquí.
+- Al editar, el nombre completo del `User` se recalcula como "nombre apellido" (recortado a 160 caracteres, igual que en el alta) y se guarda en la misma operación. Para eso se agregaron `User.ChangeFullName` en el dominio y `IUserRepository.GetByIdAsync` (con seguimiento) en Application.
+- `IDentistRepository.LicenseNumberExistsAsync` recibe `excludingId`, como `IChairRepository.NameExistsAsync`: un odontólogo puede conservar su propia licencia escrita con otras mayúsculas.
+- Si el odontólogo existe pero su `User` no, se lanza `InvalidOperationException` (500) y no `NOT-FOUND`: la llave foránea lo impide, así que sería un dato roto y no un error de quien llama.
+**Motivo:** el nombre del usuario debe coincidir con la ficha del odontólogo, y separar editar de activar mantiene las tareas pequeñas.
