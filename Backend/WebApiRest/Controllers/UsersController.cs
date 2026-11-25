@@ -76,6 +76,21 @@ public sealed class UsersController : ControllerBase
         CancellationToken cancellationToken) =>
         handler.HandleAsync(new ChangeUserEmailCommand(id, request.Email ?? string.Empty), cancellationToken);
 
+    /// <summary>
+    /// Changes the display name of a reception or admin account. A dentist's name is changed with
+    /// PUT /api/dentists/{id} (400 here).
+    /// </summary>
+    [HttpPut("{id:guid}/full-name")]
+    [ProducesResponseType<UserDto>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    public Task<UserDto> ChangeFullName(
+        Guid id,
+        ChangeUserFullNameRequest request,
+        [FromServices] ChangeUserFullNameHandler handler,
+        CancellationToken cancellationToken) =>
+        handler.HandleAsync(new ChangeUserFullNameCommand(id, request.FullName ?? string.Empty), cancellationToken);
+
     /// <summary>Sets a new password without the old one; the old one stops working at once.</summary>
     [HttpPut("{id:guid}/password")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]

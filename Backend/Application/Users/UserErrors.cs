@@ -18,6 +18,9 @@ internal static class UserErrors
     public static DomainException DentistAccountsFollowTheirRecord() =>
         new(DomainException.ValidationCode, "A dentist's account is activated or deactivated through the dentist.");
 
+    public static DomainException DentistNameFollowsTheirRecord() =>
+        new(DomainException.ValidationCode, "A dentist's name is changed through the dentist.");
+
     /// <summary>The same minimum as the initial administrator's password.</summary>
     public static void EnsurePasswordIsLongEnough(string? password)
     {

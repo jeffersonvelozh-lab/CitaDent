@@ -22,6 +22,7 @@ public class UserCommandHandlersTests
     private ResetUserPasswordHandler ResetPassword => new(_users, new FakePasswordHasher(), _unitOfWork);
     private ChangeUserRoleHandler ChangeRole => new(_users, _unitOfWork);
     private SetUserActiveHandler SetActive => new(_users, _unitOfWork);
+    private ChangeUserFullNameHandler ChangeFullName => new(_users, _unitOfWork);
 
     private User Seed(UserRole role, string? email = null, bool active = true)
     {
@@ -153,6 +154,55 @@ public class UserCommandHandlersTests
     {
         await AssertFailsWithoutSavingAsync(ApplicationErrorCodes.NotFound, () =>
             ChangeEmail.HandleAsync(new ChangeUserEmailCommand(Guid.NewGuid(), "nuevo@citadent.test")));
+    }
+
+    // Full name
+
+    [Theory]
+    [InlineData(UserRole.Reception)]
+    [InlineData(UserRole.Admin)]
+    public async Task ChangeFullName_TrimsAndSavesOnce(UserRole role)
+    {
+        var user = Seed(role);
+
+        var result = await ChangeFullName.HandleAsync(new ChangeUserFullNameCommand(user.Id, "  Ana María Torres "));
+
+        Assert.Equal("Ana María Torres", result.FullName);
+        Assert.Equal("Ana María Torres", user.FullName);
+        Assert.Equal(1, _unitOfWork.SaveCount);
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("   ")]
+    [InlineData("TOO-LONG")]
+    public async Task ChangeFullName_WithAnInvalidName_ThrowsValidationAndKeepsTheOldOne(string fullName)
+    {
+        var user = Seed(UserRole.Reception);
+        var candidate = fullName == "TOO-LONG" ? new string('A', User.FullNameMaxLength + 1) : fullName;
+
+        await AssertFailsWithoutSavingAsync(DomainException.ValidationCode, () =>
+            ChangeFullName.HandleAsync(new ChangeUserFullNameCommand(user.Id, candidate)));
+
+        Assert.Equal("Ana Torres", user.FullName);
+    }
+
+    [Fact]
+    public async Task ChangeFullName_OfADentistAccount_ThrowsValidationAndKeepsTheName()
+    {
+        var user = Seed(UserRole.Dentist);
+
+        await AssertFailsWithoutSavingAsync(DomainException.ValidationCode, () =>
+            ChangeFullName.HandleAsync(new ChangeUserFullNameCommand(user.Id, "Otro Nombre")));
+
+        Assert.Equal("Ana Torres", user.FullName);
+    }
+
+    [Fact]
+    public async Task ChangeFullName_OfAnUnknownUser_ThrowsNotFound()
+    {
+        await AssertFailsWithoutSavingAsync(ApplicationErrorCodes.NotFound, () =>
+            ChangeFullName.HandleAsync(new ChangeUserFullNameCommand(Guid.NewGuid(), "Ana Torres")));
     }
 
     // Reset password

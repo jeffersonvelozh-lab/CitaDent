@@ -3,6 +3,7 @@ using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
 using Domain.Users;
+using Microsoft.IdentityModel.JsonWebTokens;
 
 namespace WebApiRest.Tests.Users;
 
@@ -205,6 +206,57 @@ public class UsersEndpointTests(CitaDentApiFactory factory) : IClassFixture<Cita
         await AssertProblemAsync(response, HttpStatusCode.BadRequest, "VALIDATION");
     }
 
+    // Full name
+
+    [Fact]
+    public async Task ChangeFullName_Returns200_AndTheNextTokenCarriesTheNewName()
+    {
+        var (id, email) = await CreateAsync();
+
+        var response = await _admin.PutAsJsonAsync($"{Url}/{id}/full-name", new { fullName = "  Ana María Torres " });
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal("Ana María Torres", (await ReadAsync(response)).GetProperty("fullName").GetString());
+        var reloaded = await ReadAsync(await _admin.GetAsync($"{Url}/{id}"));
+        Assert.Equal("Ana María Torres", reloaded.GetProperty("fullName").GetString());
+
+        var login = await ReadAsync(await LoginAsync(email));
+        var token = new JsonWebTokenHandler().ReadJsonWebToken(login.GetProperty("accessToken").GetString());
+        Assert.Equal("Ana María Torres", token.GetClaim(JwtRegisteredClaimNames.Name).Value);
+    }
+
+    [Theory]
+    [InlineData("""{ "fullName": "  " }""")]
+    [InlineData("""{ }""")]
+    public async Task ChangeFullName_WithABlankName_Returns400Validation(string json)
+    {
+        var (id, _) = await CreateAsync();
+
+        var response = await PutRawAsync($"{Url}/{id}/full-name", json);
+
+        await AssertProblemAsync(response, HttpStatusCode.BadRequest, "VALIDATION");
+    }
+
+    [Fact]
+    public async Task ChangeFullName_WithATooLongName_Returns400Validation()
+    {
+        var (id, _) = await CreateAsync();
+
+        var response = await _admin.PutAsJsonAsync($"{Url}/{id}/full-name", new { fullName = new string('A', User.FullNameMaxLength + 1) });
+
+        await AssertProblemAsync(response, HttpStatusCode.BadRequest, "VALIDATION");
+    }
+
+    [Fact]
+    public async Task ChangeFullName_OfADentistAccount_Returns400Validation()
+    {
+        var id = await IdOfAsync(CitaDentApiFactory.InactiveEmail);
+
+        var response = await _admin.PutAsJsonAsync($"{Url}/{id}/full-name", new { fullName = "Otro Nombre" });
+
+        await AssertProblemAsync(response, HttpStatusCode.BadRequest, "VALIDATION");
+    }
+
     // Password
 
     [Fact]
@@ -304,6 +356,7 @@ public class UsersEndpointTests(CitaDentApiFactory factory) : IClassFixture<Cita
         { "GET", $"{Url}/{id}", null },
         { "POST", Url, """{ "email": "x@citadent.test", "fullName": "X", "password": "Clave-Usuario-2026", "role": "Reception" }""" },
         { "PUT", $"{Url}/{id}/email", """{ "email": "x@citadent.test" }""" },
+        { "PUT", $"{Url}/{id}/full-name", """{ "fullName": "Ana Torres" }""" },
         { "PUT", $"{Url}/{id}/password", """{ "password": "Clave-Usuario-2026" }""" },
         { "PUT", $"{Url}/{id}/role", """{ "role": "Admin" }""" },
         { "POST", $"{Url}/{id}/activate", null },
