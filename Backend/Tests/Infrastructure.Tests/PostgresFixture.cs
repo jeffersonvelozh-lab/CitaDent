@@ -60,12 +60,11 @@ public sealed class PostgresFixture : IDisposable
 
     public CitaDentDbContext CreateContext()
     {
-        var options = new DbContextOptionsBuilder<CitaDentDbContext>()
-            .UseNpgsql(ConnectionString)
-            .UseSnakeCaseNamingConvention()
-            .Options;
+        // The same configuration as the API, retries included.
+        var options = new DbContextOptionsBuilder<CitaDentDbContext>();
+        options.UseCitaDentDatabase(ConnectionString);
 
-        return new CitaDentDbContext(options, TimeProvider.System);
+        return new CitaDentDbContext(options.Options, TimeProvider.System);
     }
 
     /// <summary>Saves the entities with a fresh context, like a separate request would.</summary>

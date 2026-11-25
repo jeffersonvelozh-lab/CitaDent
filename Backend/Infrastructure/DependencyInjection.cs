@@ -34,9 +34,7 @@ public static class DependencyInjection
         var clinicTimeZone = ClinicTimeZone.Resolve(configuration);
         services.AddSingleton(provider => new ClinicClock(provider.GetRequiredService<TimeProvider>(), clinicTimeZone));
 
-        services.AddDbContext<CitaDentDbContext>(options => options
-            .UseNpgsql(connectionString)
-            .UseSnakeCaseNamingConvention());
+        services.AddDbContext<CitaDentDbContext>(options => options.UseCitaDentDatabase(connectionString));
 
         // The same DbContext instance of the request, so repositories and the unit of work share changes.
         services.AddScoped<IUnitOfWork>(provider => provider.GetRequiredService<CitaDentDbContext>());
