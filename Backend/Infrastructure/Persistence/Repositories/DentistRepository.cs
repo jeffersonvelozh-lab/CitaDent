@@ -29,12 +29,17 @@ public sealed class DentistRepository(CitaDentDbContext context) : IDentistRepos
             .ToListAsync(cancellationToken);
     }
 
-    public Task<bool> LicenseNumberExistsAsync(string licenseNumber, CancellationToken cancellationToken = default)
+    public Task<bool> LicenseNumberExistsAsync(
+        string licenseNumber,
+        Guid? excludingId,
+        CancellationToken cancellationToken = default)
     {
         // lower() on both sides in SQL, so "lic-123" and "LIC-123" count as the same license.
         var lowered = licenseNumber.ToLower();
 
-        return context.Dentists.AnyAsync(d => d.LicenseNumber.ToLower() == lowered, cancellationToken);
+        return context.Dentists.AnyAsync(
+            d => d.LicenseNumber.ToLower() == lowered && (excludingId == null || d.Id != excludingId),
+            cancellationToken);
     }
 
     public void Add(Dentist dentist) => context.Dentists.Add(dentist);

@@ -44,16 +44,37 @@ public sealed class Dentist : Entity<Guid>
             throw new DomainException(Guard.ValidationCode, "A dentist must be linked to a user.");
         }
 
-        return new Dentist
+        var dentist = new Dentist
         {
             Id = Guid.CreateVersion7(),
             UserId = userId,
-            FirstName = Guard.NotBlank(firstName, "First name", NameMaxLength),
-            LastName = Guard.NotBlank(lastName, "Last name", NameMaxLength),
-            LicenseNumber = Guard.NotBlank(licenseNumber, "License number", LicenseNumberMaxLength),
-            Specialty = Guard.OptionalMax(specialty, "Specialty", SpecialtyMaxLength),
             IsActive = true
         };
+
+        dentist.Apply(firstName, lastName, licenseNumber, specialty);
+
+        return dentist;
+    }
+
+    /// <summary>
+    /// Replaces the dentist's personal data; a blank specialty clears it. The user, the state and the
+    /// schedule do not change. License uniqueness is checked by Application, which can see other dentists.
+    /// </summary>
+    public void Update(string firstName, string lastName, string licenseNumber, string? specialty) =>
+        Apply(firstName, lastName, licenseNumber, specialty);
+
+    // Validates everything first and assigns at the end, so a failed Update leaves the dentist as it was.
+    private void Apply(string firstName, string lastName, string licenseNumber, string? specialty)
+    {
+        var validFirstName = Guard.NotBlank(firstName, "First name", NameMaxLength);
+        var validLastName = Guard.NotBlank(lastName, "Last name", NameMaxLength);
+        var validLicenseNumber = Guard.NotBlank(licenseNumber, "License number", LicenseNumberMaxLength);
+        var validSpecialty = Guard.OptionalMax(specialty, "Specialty", SpecialtyMaxLength);
+
+        FirstName = validFirstName;
+        LastName = validLastName;
+        LicenseNumber = validLicenseNumber;
+        Specialty = validSpecialty;
     }
 
     /// <summary>

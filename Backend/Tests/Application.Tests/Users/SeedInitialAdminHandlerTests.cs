@@ -133,6 +133,9 @@ public class SeedInitialAdminHandlerTests
         public Task<User?> FindByEmailAsync(string email, CancellationToken cancellationToken = default) =>
             Task.FromResult(All.SingleOrDefault(u => u.Email == email));
 
+        public Task<User?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default) =>
+            Task.FromResult(All.SingleOrDefault(u => u.Id == id));
+
         public Task<bool> AnyWithRoleAsync(UserRole role, CancellationToken cancellationToken = default) =>
             Task.FromResult(All.Any(u => u.Role == role));
 

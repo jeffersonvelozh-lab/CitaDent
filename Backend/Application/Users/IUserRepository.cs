@@ -10,6 +10,11 @@ public interface IUserRepository
     /// </summary>
     Task<User?> FindByEmailAsync(string email, CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Finds a user by id. Changes to the returned entity are saved by IUnitOfWork.
+    /// </summary>
+    Task<User?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default);
+
     /// <summary>True when at least one user, active or not, has the role.</summary>
     Task<bool> AnyWithRoleAsync(UserRole role, CancellationToken cancellationToken = default);
 

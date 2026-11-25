@@ -118,6 +118,9 @@ public class LoginHandlerTests
         public Task<User?> FindByEmailAsync(string email, CancellationToken cancellationToken = default) =>
             Task.FromResult(_users.SingleOrDefault(u => u.Email == email));
 
+        public Task<User?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default) =>
+            Task.FromResult(_users.SingleOrDefault(u => u.Id == id));
+
         public Task<bool> AnyWithRoleAsync(UserRole role, CancellationToken cancellationToken = default) =>
             Task.FromResult(_users.Any(u => u.Role == role));
     }

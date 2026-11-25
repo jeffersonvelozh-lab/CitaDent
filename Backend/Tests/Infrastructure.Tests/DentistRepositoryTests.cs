@@ -188,9 +188,46 @@ public class DentistRepositoryTests(PostgresFixture fixture) : IClassFixture<Pos
         await using var context = fixture.CreateContext();
         var repository = new DentistRepository(context);
 
-        Assert.True(await repository.LicenseNumberExistsAsync(dentist.LicenseNumber));
-        Assert.True(await repository.LicenseNumberExistsAsync(dentist.LicenseNumber.ToLowerInvariant()));
-        Assert.False(await repository.LicenseNumberExistsAsync($"LIC-{Guid.NewGuid():N}"[..20]));
+        Assert.True(await repository.LicenseNumberExistsAsync(dentist.LicenseNumber, excludingId: null));
+        Assert.True(await repository.LicenseNumberExistsAsync(dentist.LicenseNumber.ToLowerInvariant(), excludingId: null));
+        Assert.False(await repository.LicenseNumberExistsAsync($"LIC-{Guid.NewGuid():N}"[..20], excludingId: null));
+    }
+
+    [Fact]
+    public async Task LicenseNumberExists_IgnoresTheExcludedDentist_ButNotTheOthers()
+    {
+        var dentist = SaveDentist();
+        var other = SaveDentist();
+
+        await using var context = fixture.CreateContext();
+        var repository = new DentistRepository(context);
+
+        Assert.False(await repository.LicenseNumberExistsAsync(dentist.LicenseNumber.ToLowerInvariant(), dentist.Id));
+        Assert.True(await repository.LicenseNumberExistsAsync(other.LicenseNumber, dentist.Id));
+    }
+
+    [Fact]
+    public async Task Update_ChangedThroughATrackedDentist_IsSaved()
+    {
+        var dentist = SaveDentist();
+        var newLicense = $"LIC-{Guid.NewGuid():N}"[..20];
+
+        await using (var context = fixture.CreateContext())
+        {
+            var tracked = await new DentistRepository(context).GetByIdAsync(dentist.Id);
+            tracked!.Update("Luisa", "Vera", newLicense, specialty: null);
+            await context.SaveChangesAsync();
+        }
+
+        await using (var context = fixture.CreateContext())
+        {
+            var reloaded = await new DentistRepository(context).GetByIdAsync(dentist.Id);
+            Assert.Equal("Luisa", reloaded!.FirstName);
+            Assert.Equal("Vera", reloaded.LastName);
+            Assert.Equal(newLicense, reloaded.LicenseNumber);
+            Assert.Null(reloaded.Specialty);
+            Assert.Equal(2, reloaded.WeeklySchedule.Count);
+        }
     }
 
     [Fact]

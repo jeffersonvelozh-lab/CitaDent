@@ -32,6 +32,32 @@ public class UserRepositoryTests(PostgresFixture fixture) : IClassFixture<Postgr
     }
 
     [Fact]
+    public async Task GetById_ReturnsATrackedUser_WhoseChangesAreSaved()
+    {
+        var user = NewUser(UserRole.Reception);
+        fixture.Save(user);
+
+        await using (var context = fixture.CreateContext())
+        {
+            var tracked = await new UserRepository(context).GetByIdAsync(user.Id);
+            Assert.NotNull(tracked);
+            tracked.ChangeFullName("Nombre Cambiado");
+            await context.SaveChangesAsync();
+        }
+
+        var found = await FindWithAFreshContext(user.Email);
+        Assert.Equal("Nombre Cambiado", found!.FullName);
+    }
+
+    [Fact]
+    public async Task GetById_ReturnsNull_WhenNoUserHasThatId()
+    {
+        await using var context = fixture.CreateContext();
+
+        Assert.Null(await new UserRepository(context).GetByIdAsync(Guid.NewGuid()));
+    }
+
+    [Fact]
     public async Task AnyWithRole_IsFalseUntilAUserWithThatRoleIsSaved()
     {
         // No other test in this class saves a dentist, and each class has its own database.

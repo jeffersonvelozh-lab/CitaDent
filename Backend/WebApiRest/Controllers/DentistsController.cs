@@ -9,8 +9,8 @@ namespace WebApiRest.Controllers;
 
 /// <summary>
 /// Dentists and their weekly schedules. Any signed-in role reads them (reception books with them, a dentist
-/// sees their schedule); only an admin registers a dentist, with the user account they sign in with, and
-/// replaces a schedule. Errors (VALIDATION, NOT-FOUND, DUPLICATE) are answered by the central error handling.
+/// sees their schedule); only an admin registers a dentist, with the user account they sign in with, edits
+/// their data and replaces a schedule. Errors (VALIDATION, NOT-FOUND, DUPLICATE) are answered by the central error handling.
 /// </summary>
 [ApiController]
 [Route("api/dentists")]
@@ -55,6 +55,30 @@ public sealed class DentistsController : ControllerBase
 
         return CreatedAtAction(nameof(Get), new { id = created.Id }, created);
     }
+
+    /// <summary>
+    /// Replaces the dentist's personal data and updates the full name of their user account. The license
+    /// is unique ignoring case (409); a missing or empty specialty clears it.
+    /// </summary>
+    [HttpPut("{id:guid}")]
+    [Authorize(Policy = AuthorizationPolicies.AdminOnly)]
+    [ProducesResponseType<DentistDto>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
+    public Task<DentistDto> Update(
+        Guid id,
+        UpdateDentistRequest request,
+        [FromServices] UpdateDentistHandler handler,
+        CancellationToken cancellationToken) =>
+        handler.HandleAsync(
+            new UpdateDentistCommand(
+                id,
+                request.FirstName ?? string.Empty,
+                request.LastName ?? string.Empty,
+                request.LicenseNumber ?? string.Empty,
+                request.Specialty),
+            cancellationToken);
 
     /// <summary>
     /// Replaces the whole weekly schedule with the blocks in the body; an empty array leaves none.

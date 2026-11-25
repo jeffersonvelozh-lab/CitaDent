@@ -3,6 +3,9 @@ using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
 using Domain.Users;
+using Infrastructure.Persistence;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.JsonWebTokens;
 
 namespace WebApiRest.Tests.Dentists;
@@ -231,6 +234,123 @@ public class DentistsEndpointTests(CitaDentApiFactory factory) : IClassFixture<C
     public async Task Get_WithoutToken_Returns401()
     {
         var response = await factory.CreateClient().GetAsync($"{Url}/{Guid.NewGuid()}");
+
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
+
+    // Update
+
+    private static object Edit(string? license, string firstName = "Luisa", string lastName = "Vera",
+        string? specialty = "Endodoncia") =>
+        new { firstName, lastName, licenseNumber = license, specialty };
+
+    private async Task<string> UserFullNameAsync(Guid userId)
+    {
+        using var scope = factory.Services.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<CitaDentDbContext>();
+        var user = await context.Users.AsNoTracking().SingleAsync(u => u.Id == userId);
+        return user.FullName;
+    }
+
+    [Fact]
+    public async Task Update_AsAdmin_Returns200AndChangesTheDentistAndTheUserFullName()
+    {
+        var id = await RegisterAsync();
+        Assert.Equal(HttpStatusCode.OK, (await PutScheduleAsync(id, Block("Monday", "08:00", "12:00"))).StatusCode);
+        var license = NewLicense();
+
+        var response = await _admin.PutAsJsonAsync($"{Url}/{id}", Edit($" {license} ", " Luisa ", " Vera "));
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var body = await ReadAsync(response);
+        Assert.Equal("Luisa", body.GetProperty("firstName").GetString());
+        Assert.Equal("Vera", body.GetProperty("lastName").GetString());
+        Assert.Equal(license, body.GetProperty("licenseNumber").GetString());
+        Assert.Equal("Endodoncia", body.GetProperty("specialty").GetString());
+        Assert.True(body.GetProperty("isActive").GetBoolean());
+
+        var reloaded = await ReadAsync(await _admin.GetAsync($"{Url}/{id}"));
+        Assert.Equal("Luisa", reloaded.GetProperty("firstName").GetString());
+        Assert.Equal(license, reloaded.GetProperty("licenseNumber").GetString());
+        Assert.Equal([("Monday", "08:00:00", "12:00:00")], Schedule(reloaded));
+        Assert.Equal("Luisa Vera", await UserFullNameAsync(reloaded.GetProperty("userId").GetGuid()));
+    }
+
+    [Fact]
+    public async Task Update_WithoutSpecialty_ClearsIt()
+    {
+        var id = await RegisterAsync();
+
+        var response = await _admin.PutAsJsonAsync($"{Url}/{id}", new { firstName = "Carla", lastName = "Mora", licenseNumber = NewLicense() });
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal(JsonValueKind.Null, (await ReadAsync(response)).GetProperty("specialty").ValueKind);
+    }
+
+    [Fact]
+    public async Task Update_KeepingItsOwnLicenseInOtherCase_Returns200()
+    {
+        var license = NewLicense();
+        var id = await RegisterAsync(Registration(license: license));
+
+        var response = await _admin.PutAsJsonAsync($"{Url}/{id}", Edit(license.ToLowerInvariant()));
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Update_WithTheLicenseOfAnotherDentistInOtherCase_Returns409AndChangesNothing()
+    {
+        var taken = NewLicense();
+        await RegisterAsync(Registration(license: taken));
+        var id = await RegisterAsync();
+
+        var response = await _admin.PutAsJsonAsync($"{Url}/{id}", Edit(taken.ToLowerInvariant()));
+
+        await AssertProblemAsync(response, HttpStatusCode.Conflict, "DUPLICATE");
+        var unchanged = await ReadAsync(await _admin.GetAsync($"{Url}/{id}"));
+        Assert.Equal("Carla", unchanged.GetProperty("firstName").GetString());
+        Assert.Equal("Carla Mora", await UserFullNameAsync(unchanged.GetProperty("userId").GetGuid()));
+    }
+
+    [Theory]
+    [InlineData("""{ "lastName": "Vera", "licenseNumber": "LIC-1" }""")]
+    [InlineData("""{ "firstName": "Luisa", "lastName": " ", "licenseNumber": "LIC-1" }""")]
+    [InlineData("""{ "firstName": "Luisa", "lastName": "Vera" }""")]
+    [InlineData("""{ "firstName": "Luisa", "lastName": "Vera", "licenseNumber": "LIC-1234567890123456789012345678901" }""")]
+    public async Task Update_WithInvalidData_Returns400Validation(string json)
+    {
+        var id = await RegisterAsync();
+
+        var response = await _admin.PutAsync($"{Url}/{id}", new StringContent(json, Encoding.UTF8, "application/json"));
+
+        await AssertProblemAsync(response, HttpStatusCode.BadRequest, "VALIDATION");
+    }
+
+    [Fact]
+    public async Task Update_UnknownId_Returns404NotFound()
+    {
+        var response = await _admin.PutAsJsonAsync($"{Url}/{Guid.NewGuid()}", Edit(NewLicense()));
+
+        await AssertProblemAsync(response, HttpStatusCode.NotFound, "NOT-FOUND");
+    }
+
+    [Theory]
+    [InlineData(UserRole.Reception)]
+    [InlineData(UserRole.Dentist)]
+    public async Task Update_WithoutAdminRole_Returns403(UserRole role)
+    {
+        var id = await RegisterAsync();
+
+        var response = await factory.CreateClientWithToken(role).PutAsJsonAsync($"{Url}/{id}", Edit(NewLicense()));
+
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Update_WithoutToken_Returns401()
+    {
+        var response = await factory.CreateClient().PutAsJsonAsync($"{Url}/{Guid.NewGuid()}", Edit(NewLicense()));
 
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }

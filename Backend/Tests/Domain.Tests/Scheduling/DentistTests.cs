@@ -169,6 +169,66 @@ public class DentistTests
     }
 
     [Fact]
+    public void Update_ChangesTheDataAndTrimsIt_KeepingIdentityStateAndSchedule()
+    {
+        var dentist = DentistWithMondaySchedule();
+        var id = dentist.Id;
+        var userId = dentist.UserId;
+
+        dentist.Update(" Carla Inés ", " Mora Vera ", " LIC-999 ", " Endodontics ");
+
+        Assert.Equal("Carla Inés", dentist.FirstName);
+        Assert.Equal("Mora Vera", dentist.LastName);
+        Assert.Equal("LIC-999", dentist.LicenseNumber);
+        Assert.Equal("Endodontics", dentist.Specialty);
+        Assert.Equal(id, dentist.Id);
+        Assert.Equal(userId, dentist.UserId);
+        Assert.True(dentist.IsActive);
+        Assert.Equal(2, dentist.WeeklySchedule.Count);
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("   ")]
+    public void Update_ClearsTheSpecialty_WhenItIsBlank(string? specialty)
+    {
+        var dentist = Dentist.Create(Guid.NewGuid(), "Carla", "Mora", "LIC-123", "Orthodontics");
+
+        dentist.Update("Carla", "Mora", "LIC-123", specialty);
+
+        Assert.Null(dentist.Specialty);
+    }
+
+    public static TheoryData<string?, string?, string?, string?> InvalidUpdates => new()
+    {
+        { null, "Vera", "LIC-999", "Endodontics" },
+        { "  ", "Vera", "LIC-999", "Endodontics" },
+        { new string('A', Dentist.NameMaxLength + 1), "Vera", "LIC-999", "Endodontics" },
+        { "Luisa", "", "LIC-999", "Endodontics" },
+        { "Luisa", new string('A', Dentist.NameMaxLength + 1), "LIC-999", "Endodontics" },
+        { "Luisa", "Vera", " ", "Endodontics" },
+        { "Luisa", "Vera", new string('9', Dentist.LicenseNumberMaxLength + 1), "Endodontics" },
+        { "Luisa", "Vera", "LIC-999", new string('E', Dentist.SpecialtyMaxLength + 1) },
+    };
+
+    [Theory]
+    [MemberData(nameof(InvalidUpdates))]
+    public void Update_Throws_AndChangesNothing_WhenAFieldIsInvalid(
+        string? firstName, string? lastName, string? license, string? specialty)
+    {
+        var dentist = Dentist.Create(Guid.NewGuid(), "Carla", "Mora", "LIC-123", "Orthodontics");
+
+        var ex = Assert.Throws<DomainException>(() => dentist.Update(firstName!, lastName!, license!, specialty));
+
+        Assert.Equal("VALIDATION", ex.Code);
+        Assert.Equal("Carla", dentist.FirstName);
+        Assert.Equal("Mora", dentist.LastName);
+        Assert.Equal("LIC-123", dentist.LicenseNumber);
+        Assert.Equal("Orthodontics", dentist.Specialty);
+    }
+
+    [Fact]
     public void DeactivateAndActivate_ToggleTheState()
     {
         var dentist = DentistWithMondaySchedule();

@@ -35,7 +35,7 @@ public sealed class RegisterDentistHandler(
 
         // 2. Domain: validates and normalizes the email, names and license before looking for duplicates.
         var user = User.Create(
-            command.Email, FullName(command.FirstName, command.LastName), passwordHasher.Hash(command.Password),
+            command.Email, DentistUserName.From(command.FirstName, command.LastName), passwordHasher.Hash(command.Password),
             UserRole.Dentist);
 
         var dentist = Dentist.Create(
@@ -47,7 +47,7 @@ public sealed class RegisterDentistHandler(
             throw DentistErrors.DuplicateEmail();
         }
 
-        if (await dentists.LicenseNumberExistsAsync(dentist.LicenseNumber, cancellationToken))
+        if (await dentists.LicenseNumberExistsAsync(dentist.LicenseNumber, excludingId: null, cancellationToken))
         {
             throw DentistErrors.DuplicateLicenseNumber();
         }
@@ -58,14 +58,5 @@ public sealed class RegisterDentistHandler(
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
         return DentistDto.From(dentist);
-    }
-
-    // The user's display name. Two names of up to 80 characters can pass the user's 160, so it is cut;
-    // blank names are left for Dentist.Create to reject.
-    private static string FullName(string? firstName, string? lastName)
-    {
-        var fullName = $"{firstName?.Trim()} {lastName?.Trim()}".Trim();
-
-        return fullName.Length > User.FullNameMaxLength ? fullName[..User.FullNameMaxLength] : fullName;
     }
 }

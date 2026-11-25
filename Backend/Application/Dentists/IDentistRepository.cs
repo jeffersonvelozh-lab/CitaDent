@@ -16,8 +16,14 @@ public interface IDentistRepository
     /// </summary>
     Task<IReadOnlyList<Dentist>> ListAsync(bool includeInactive, CancellationToken cancellationToken = default);
 
-    /// <summary>True when a dentist already has this license number, ignoring case. It must already be trimmed.</summary>
-    Task<bool> LicenseNumberExistsAsync(string licenseNumber, CancellationToken cancellationToken = default);
+    /// <summary>
+    /// True when a dentist other than <paramref name="excludingId"/> already has this license number, ignoring
+    /// case. It must already be trimmed. Pass null when registering, the dentist's own id when editing.
+    /// </summary>
+    Task<bool> LicenseNumberExistsAsync(
+        string licenseNumber,
+        Guid? excludingId,
+        CancellationToken cancellationToken = default);
 
     /// <summary>Marks the dentist to be inserted on the next IUnitOfWork.SaveChangesAsync.</summary>
     void Add(Dentist dentist);

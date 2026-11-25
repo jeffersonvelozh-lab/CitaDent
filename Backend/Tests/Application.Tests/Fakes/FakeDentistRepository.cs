@@ -28,9 +28,13 @@ internal sealed class FakeDentistRepository : IDentistRepository
             .ThenBy(d => d.Id)
             .ToList());
 
-    public Task<bool> LicenseNumberExistsAsync(string licenseNumber, CancellationToken cancellationToken = default) =>
+    public Task<bool> LicenseNumberExistsAsync(
+        string licenseNumber,
+        Guid? excludingId,
+        CancellationToken cancellationToken = default) =>
         Task.FromResult(_dentists.Any(d =>
-            string.Equals(d.LicenseNumber, licenseNumber, StringComparison.OrdinalIgnoreCase)));
+            d.Id != excludingId
+            && string.Equals(d.LicenseNumber, licenseNumber, StringComparison.OrdinalIgnoreCase)));
 
     public void Add(Dentist dentist) => _dentists.Add(dentist);
 }

@@ -103,6 +103,36 @@ public class UserTests
     }
 
     [Fact]
+    public void ChangeFullName_TrimsAndKeepsTheRestOfTheUser()
+    {
+        var user = User.Create("ana@citadent.ec", "Ana Torres", Hash, UserRole.Dentist);
+
+        user.ChangeFullName("  Ana María Torres ");
+
+        Assert.Equal("Ana María Torres", user.FullName);
+        Assert.Equal("ana@citadent.ec", user.Email);
+        Assert.Equal(Hash, user.PasswordHash);
+        Assert.Equal(UserRole.Dentist, user.Role);
+        Assert.True(user.IsActive);
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("   ")]
+    [InlineData("TOO-LONG")]
+    public void ChangeFullName_Throws_AndKeepsTheOldName_WhenTheNameIsInvalid(string? fullName)
+    {
+        var user = User.Create("ana@citadent.ec", "Ana Torres", Hash, UserRole.Dentist);
+        var candidate = fullName == "TOO-LONG" ? new string('A', User.FullNameMaxLength + 1) : fullName;
+
+        var ex = Assert.Throws<DomainException>(() => user.ChangeFullName(candidate!));
+
+        Assert.Equal("VALIDATION", ex.Code);
+        Assert.Equal("Ana Torres", user.FullName);
+    }
+
+    [Fact]
     public void DeactivateAndActivate_ToggleTheState()
     {
         var user = User.Create("ana@citadent.ec", "Ana Torres", Hash, UserRole.Dentist);

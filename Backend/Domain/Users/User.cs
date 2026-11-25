@@ -53,6 +53,10 @@ public sealed class User : Entity<Guid>
         };
     }
 
+    /// <summary>Changes the display name; if it is invalid, the old one stays.</summary>
+    public void ChangeFullName(string fullName) =>
+        FullName = Guard.NotBlank(fullName, "Full name", FullNameMaxLength);
+
     public void Deactivate() => IsActive = false;
 
     public void Activate() => IsActive = true;
