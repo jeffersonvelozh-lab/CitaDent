@@ -112,3 +112,9 @@ La API lee y escribe los enums por su nombre (`"documentType": "Cedula"`), con `
 - Desactivar al último Admin activo, o quitarle el rol, da el código nuevo `LAST-ADMIN` (en `ApplicationErrorCodes`; ninguna regla RN lo cubre). Un Admin inactivo no cuenta; desactivar o degradar a un Admin que ya está inactivo se permite, porque no reduce los Admins activos. Un Admin puede desactivarse a sí mismo si queda otro activo.
 - La unicidad del correo usa `IUserRepository.EmailExistsAsync(email, excludingId)`, igual que la licencia y los nombres de sillón; el correo ya se guarda en minúsculas, así que la comparación es exacta.
 **Motivo:** la clínica nunca debe quedar sin quien administre las cuentas, y el rol Dentist sin ficha (o una ficha sin ese rol) dejaría datos inconsistentes. La revisión del último Admin no usa bloqueo; el límite está en `docs/traspaso.md`.
+
+### Endpoints de usuarios (1b-12f)
+- Todo `/api/users` exige el rol Admin (política a nivel de controlador). `LAST-ADMIN` responde **409**, como los demás choques con el estado actual.
+- El filtro `role` de la URL se lee como texto y solo acepta un nombre definido (`Admin`, `Reception`, `Dentist`, sin distinguir mayúsculas); un número (`?role=1`) o un nombre desconocido da 400 `VALIDATION`. El enlace de ASP.NET aceptaría números, incluso no definidos, y eso rompería la regla de enums como texto.
+- `PUT /{id}/password` responde 204 sin cuerpo; correo y rol responden 200 con el usuario. Un Admin puede restablecer también su propia contraseña por esta vía sin dar la actual; un cambio de contraseña de autoservicio (con la actual, para cualquier rol) queda como idea para más adelante, fuera del plan.
+**Motivo:** el contrato sigue las convenciones ya usadas en odontólogos y sillones, y la contraseña no tiene nada que devolver.
