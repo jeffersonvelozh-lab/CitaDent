@@ -62,6 +62,12 @@ public sealed class CitaDentApiFactory : WebApplicationFactory<Program>
             .AddApplicationPart(typeof(AuthorizationProbeController).Assembly));
     }
 
+    /// <summary>
+    /// Saves entities straight into this factory's database, skipping the API. For data the API refuses to create
+    /// on purpose, such as an appointment that already took place (RN-06).
+    /// </summary>
+    public void SaveInDatabase(params object[] entities) => _database.Save(entities);
+
     /// <summary>A client that sends a valid token for a user with the given role.</summary>
     public HttpClient CreateClientWithToken(UserRole role) => CreateClientWithToken(IssueToken(role));
 

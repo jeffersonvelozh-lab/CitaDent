@@ -9,6 +9,17 @@ internal static class AppointmentErrors
     public const string DentistTakenCode = "RN-02";
     public const string ChairTakenCode = "RN-03";
 
+    public const string NotTheAssignedDentistCode = "RN-09";
+
+    public static DomainException NotTheAssignedDentist() =>
+        new(NotTheAssignedDentistCode, "Only the assigned dentist or an administrator can complete the appointment.");
+
+    public static DomainException NotStartedYet(string action) =>
+        new(DomainException.ValidationCode, $"The appointment has not started yet, so it cannot be {action}.");
+
+    public static DomainException AlreadyStarted() =>
+        new(DomainException.ValidationCode, "The appointment has already started, so it can no longer be cancelled.");
+
     public static DomainException NotFound(Guid id) =>
         new(ApplicationErrorCodes.NotFound, $"Appointment {id} was not found.");
 

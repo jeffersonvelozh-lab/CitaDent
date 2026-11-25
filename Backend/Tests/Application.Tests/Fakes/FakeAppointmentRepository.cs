@@ -20,8 +20,17 @@ internal sealed class FakeAppointmentRepository : IAppointmentRepository
 
     public (TimeRange Slot, Guid DentistId, Guid ChairId)? LastQuery { get; private set; }
 
+    private readonly List<Appointment> _seeded = [];
+
+    /// <summary>Puts an appointment in the store, as if it had been saved before the test.</summary>
+    public Appointment Seed(Appointment appointment)
+    {
+        _seeded.Add(appointment);
+        return appointment;
+    }
+
     public Task<Appointment?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default) =>
-        Task.FromResult(_added.Concat(Overlapping).FirstOrDefault(a => a.Id == id));
+        Task.FromResult(_seeded.Concat(_added).Concat(Overlapping).FirstOrDefault(a => a.Id == id));
 
     public Task<IReadOnlyList<Appointment>> ListScheduledOverlappingAsync(
         TimeRange slot,
