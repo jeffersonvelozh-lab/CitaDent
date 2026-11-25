@@ -8,4 +8,7 @@ public static class ApplicationErrorCodes
 
     /// <summary>Another record already has a value that must be unique (HTTP 409).</summary>
     public const string Duplicate = "DUPLICATE";
+
+    /// <summary>The change would leave the clinic without an active administrator.</summary>
+    public const string LastActiveAdmin = "LAST-ADMIN";
 }

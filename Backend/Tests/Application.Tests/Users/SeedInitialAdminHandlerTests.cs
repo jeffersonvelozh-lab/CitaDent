@@ -136,6 +136,18 @@ public class SeedInitialAdminHandlerTests
         public Task<User?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default) =>
             Task.FromResult(All.SingleOrDefault(u => u.Id == id));
 
+        public Task<bool> EmailExistsAsync(string email, Guid? excludingId, CancellationToken cancellationToken = default) =>
+            throw new NotSupportedException();
+
+        public Task<IReadOnlyList<User>> ListAsync(
+            bool includeInactive,
+            UserRole? role,
+            CancellationToken cancellationToken = default) =>
+            throw new NotSupportedException();
+
+        public Task<bool> AnyOtherActiveAdminAsync(Guid excludingId, CancellationToken cancellationToken = default) =>
+            throw new NotSupportedException();
+
         public Task<bool> AnyWithRoleAsync(UserRole role, CancellationToken cancellationToken = default) =>
             Task.FromResult(All.Any(u => u.Role == role));
 

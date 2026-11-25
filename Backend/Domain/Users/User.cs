@@ -32,11 +32,6 @@ public sealed class User : Entity<Guid>
 
     public static User Create(string email, string fullName, string passwordHash, UserRole role)
     {
-        if (string.IsNullOrWhiteSpace(passwordHash))
-        {
-            throw new DomainException(Guard.ValidationCode, "Password hash is required.");
-        }
-
         if (!Enum.IsDefined(role))
         {
             throw new DomainException(Guard.ValidationCode, "Unknown user role.");
@@ -47,7 +42,7 @@ public sealed class User : Entity<Guid>
             Id = Guid.CreateVersion7(),
             Email = NormalizeEmail(email),
             FullName = Guard.NotBlank(fullName, "Full name", FullNameMaxLength),
-            PasswordHash = passwordHash,
+            PasswordHash = RequireHash(passwordHash),
             Role = role,
             IsActive = true
         };
@@ -57,9 +52,43 @@ public sealed class User : Entity<Guid>
     public void ChangeFullName(string fullName) =>
         FullName = Guard.NotBlank(fullName, "Full name", FullNameMaxLength);
 
+    /// <summary>
+    /// Changes the email, normalized and checked like in <see cref="Create"/>; if it is invalid, the old one
+    /// stays. Uniqueness is checked by Application.
+    /// </summary>
+    public void ChangeEmail(string email) => Email = NormalizeEmail(email);
+
+    /// <summary>Replaces the password hash (a password reset); if it is blank, the old one stays.</summary>
+    public void ChangePasswordHash(string passwordHash) => PasswordHash = RequireHash(passwordHash);
+
+    /// <summary>
+    /// Moves the user between Admin and Reception. The Dentist role is tied to a dentist record, so a user
+    /// cannot move into it or out of it. Keeping at least one active admin is checked by Application.
+    /// </summary>
+    public void ChangeRole(UserRole role)
+    {
+        if (!Enum.IsDefined(role))
+        {
+            throw new DomainException(Guard.ValidationCode, "Unknown user role.");
+        }
+
+        if (Role == UserRole.Dentist || role == UserRole.Dentist)
+        {
+            throw new DomainException(
+                Guard.ValidationCode, "The dentist role cannot be given or taken away; it belongs to a dentist record.");
+        }
+
+        Role = role;
+    }
+
     public void Deactivate() => IsActive = false;
 
     public void Activate() => IsActive = true;
+
+    private static string RequireHash(string? passwordHash) =>
+        string.IsNullOrWhiteSpace(passwordHash)
+            ? throw new DomainException(Guard.ValidationCode, "Password hash is required.")
+            : passwordHash;
 
     /// <summary>
     /// Trims and lowercases the email, then applies a simple format check: exactly one '@',

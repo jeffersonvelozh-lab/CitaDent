@@ -15,6 +15,24 @@ public interface IUserRepository
     /// </summary>
     Task<User?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// True when a user other than <paramref name="excludingId"/> already has this email. It must already be
+    /// normalized. Pass null when creating, the user's own id when changing it.
+    /// </summary>
+    Task<bool> EmailExistsAsync(string email, Guid? excludingId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// The users ordered by full name, email and id; inactive ones only when <paramref name="includeInactive"/>,
+    /// and only those with <paramref name="role"/> when it is given. They are not tracked.
+    /// </summary>
+    Task<IReadOnlyList<User>> ListAsync(
+        bool includeInactive,
+        UserRole? role,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>True when an active admin other than <paramref name="excludingId"/> exists.</summary>
+    Task<bool> AnyOtherActiveAdminAsync(Guid excludingId, CancellationToken cancellationToken = default);
+
     /// <summary>True when at least one user, active or not, has the role.</summary>
     Task<bool> AnyWithRoleAsync(UserRole role, CancellationToken cancellationToken = default);
 
