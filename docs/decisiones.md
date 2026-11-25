@@ -144,3 +144,11 @@ La API lee y escribe los enums por su nombre (`"documentType": "Cedula"`), con `
 - Es una clase de Application, no un manejador, y se registra a mano en `AddApplication()`. Hace las dos consultas una tras otra porque comparten el `DbContext`. No revisa que el odontólogo o el sillón existan: lo hará el caso de uso de agendar (1b-15), que los carga.
 - No se agregan índices todavía (límite anotado en `docs/traspaso.md`).
 **Motivo:** cargar solo lo necesario mantiene la consulta pequeña aunque crezcan las tablas, y separar la carga deja el caso de uso de agendar corto y probado por partes. Si dos solicitudes chocan a la vez, la última palabra la tienen las restricciones `EXCLUDE` (1b-15).
+
+### Agendar cita: caso de uso (1b-15a)
+- La tarea se dividió en **1b-15a** (caso de uso, traducción del `23P01` y prueba de concurrencia) y **1b-15b** (endpoints).
+- `ScheduleAppointmentHandler` valida en este orden: referencias que existan (`VALIDATION`), RN-06 (un inicio anterior a `ClinicClock.Now`; empezar justo ahora se permite y no hay anticipación mínima) y luego el dominio con el contexto de 1b-14. RN-06 se revisa antes de cargar el contexto.
+- **El `23P01` se traduce en dos pasos, para que Application no conozca EF ni Npgsql:** `CitaDentDbContext.SaveChangesAsync` lo convierte en `ScheduleConflictException` (definida en Application) según el nombre de la restricción `EXCLUDE`, y el manejador la convierte en `DomainException` RN-02 o RN-03. Otros errores de base pasan sin cambios.
+- **Deadlock entre inserciones simultáneas:** la prueba de concurrencia mostró que dos inserciones que chocan pueden recibir `40P01` (cada revisión de exclusión espera a la otra) en vez de `23P01`. Se activó `EnableRetryOnFailure` de Npgsql (3 reintentos, hasta 5 s; sin paquetes nuevos) en `CitaDentDatabaseOptions`, compartida por la API y las pruebas. Al reintentar, la otra cita ya está confirmada y la base responde `23P01`. Es seguro porque no hay transacciones explícitas.
+- La prueba de concurrencia usa dos `DbContext` y una barrera que obliga a ambos a pasar la revisión del dominio antes de guardar; así solo la base puede detener a uno.
+**Motivo:** el dominio revisa con lo que ve, pero solo la base garantiza la regla cuando dos personas agendan a la vez, y el usuario debe recibir el mismo RN-02 o RN-03 en los dos casos, nunca un 500.
