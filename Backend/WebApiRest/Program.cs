@@ -4,6 +4,7 @@ using Infrastructure;
 using Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using WebApiRest.Errors;
+using WebApiRest.Json;
 using WebApiRest.Security;
 using WebApiRest.Startup;
 
@@ -12,8 +13,12 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 
 // Enums travel as text ("Cedula", "Passport"), not numbers; a number or an unknown name is a 400.
+// Instants must carry an offset ("-05:00" or "Z"); one without it is a 400 too.
 builder.Services.AddControllers().AddJsonOptions(options =>
-    options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter(allowIntegerValues: false)));
+{
+    options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter(allowIntegerValues: false));
+    options.JsonSerializerOptions.Converters.Add(new OffsetRequiredDateTimeOffsetConverter());
+});
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
 builder.Services.AddInfrastructure(builder.Configuration);

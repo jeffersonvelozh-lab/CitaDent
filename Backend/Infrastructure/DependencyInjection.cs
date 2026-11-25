@@ -3,6 +3,7 @@ using Application.Common;
 using Application.Dentists;
 using Application.Patients;
 using Application.Procedures;
+using Application.ScheduleBlocks;
 using Application.Security;
 using Application.Users;
 using Infrastructure.Persistence;
@@ -54,6 +55,7 @@ public static class DependencyInjection
         services.AddScoped<IPatientRepository, PatientRepository>();
         services.AddScoped<IChairRepository, ChairRepository>();
         services.AddScoped<IDentistRepository, DentistRepository>();
+        services.AddScoped<IScheduleBlockRepository, ScheduleBlockRepository>();
 
         return services;
     }
