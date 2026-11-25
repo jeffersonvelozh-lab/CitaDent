@@ -138,3 +138,9 @@ La API lee y escribe los enums por su nombre (`"documentType": "Cedula"`), con `
 - `from` y `to` son obligatorios y el rango tiene como máximo 366 días, así que la lista no se pagina. Entran los bloqueos que se solapan con el rango (uno que termina justo al empezar no entra).
 - Con `dentistId` vienen sus bloqueos y, salvo `includeClinicWide=false`, los de toda la clínica; sin `dentistId`, los de todos los odontólogos. Un odontólogo inexistente da una lista sin bloqueos propios (200), porque es un filtro. Orden: inicio y luego id.
 **Motivo:** la agenda de un odontólogo también debe mostrar los feriados, y un rango acotado mantiene la consulta barata sin índice nuevo; el índice se evalúa en 1b-14.
+
+### Cargar el contexto de agenda (1b-14)
+- `SchedulingContextLoader.LoadAsync(dentistId, chairId, slot)` carga **exactamente lo que se solapa con el horario pedido**: los bloqueos del odontólogo y de toda la clínica (con `IScheduleBlockRepository.ListAsync`), y las citas `Scheduled` del odontólogo o del sillón (con el nuevo `IAppointmentRepository.ListScheduledOverlappingAsync`), sin seguimiento. El dominio solo revisa solapamientos y las citas seguidas no chocan (RN-04), así que un margen alrededor no cambiaría ninguna decisión.
+- Es una clase de Application, no un manejador, y se registra a mano en `AddApplication()`. Hace las dos consultas una tras otra porque comparten el `DbContext`. No revisa que el odontólogo o el sillón existan: lo hará el caso de uso de agendar (1b-15), que los carga.
+- No se agregan índices todavía (límite anotado en `docs/traspaso.md`).
+**Motivo:** cargar solo lo necesario mantiene la consulta pequeña aunque crezcan las tablas, y separar la carga deja el caso de uso de agendar corto y probado por partes. Si dos solicitudes chocan a la vez, la última palabra la tienen las restricciones `EXCLUDE` (1b-15).

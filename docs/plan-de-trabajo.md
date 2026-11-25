@@ -57,7 +57,7 @@ Objetivo: una API que permita iniciar sesión por rol y gestionar pacientes, cat
 - `[x] 1b-13b` **Bloqueos de agenda: listar.** `GET /api/schedule-blocks` por odontólogo y rango de fechas, con o sin los bloqueos de toda la clínica (`from` y `to` son días de la clínica en `yyyy-MM-dd`, ambos incluidos, máximo 366 días). CA: pruebas de Application con dobles, del repositorio y de integración con bloqueos dentro, fuera y en el borde del rango.
 
 ### Bloque D: Citas
-- `[ ] 1b-14` **Cargar `SchedulingContext`.** Consulta de bloqueos y citas `Scheduled` cercanas al horario pedido, por odontólogo y sillón. CA: prueba de integración que verifica que solo se cargan registros del rango relevante.
+- `[x] 1b-14` **Cargar `SchedulingContext`.** Consulta de bloqueos y citas `Scheduled` cercanas al horario pedido, por odontólogo y sillón. CA: prueba de integración que verifica que solo se cargan registros del rango relevante. Hecho con `SchedulingContextLoader` (Application) y `IAppointmentRepository.ListScheduledOverlappingAsync`; carga exactamente lo que se solapa con el horario pedido.
 - `[ ] 1b-15` **Agendar cita.** Caso de uso con RN-06, reglas del dominio (RN-01, 02, 03, 05) y traducción del `23P01` a RN-02 o RN-03 cuando dos usuarios chocan a la vez. CA: prueba de concurrencia real contra PostgreSQL (dos solicitudes simultáneas, una gana).
 - `[ ] 1b-16` **Cancelar, completar y marcar inasistencia.** RN-07, RN-08, RN-09 (quién puede completar). CA: pruebas por rol y por estado inicial inválido.
 - `[ ] 1b-17` **Consultar agenda.** Citas por día y por odontólogo, y disponibilidad libre para un procedimiento. CA: pruebas con horarios, bloqueos y citas existentes.
