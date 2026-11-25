@@ -118,3 +118,8 @@ La API lee y escribe los enums por su nombre (`"documentType": "Cedula"`), con `
 - El filtro `role` de la URL se lee como texto y solo acepta un nombre definido (`Admin`, `Reception`, `Dentist`, sin distinguir mayúsculas); un número (`?role=1`) o un nombre desconocido da 400 `VALIDATION`. El enlace de ASP.NET aceptaría números, incluso no definidos, y eso rompería la regla de enums como texto.
 - `PUT /{id}/password` responde 204 sin cuerpo; correo y rol responden 200 con el usuario. Un Admin puede restablecer también su propia contraseña por esta vía sin dar la actual; un cambio de contraseña de autoservicio (con la actual, para cualquier rol) queda como idea para más adelante, fuera del plan.
 **Motivo:** el contrato sigue las convenciones ya usadas en odontólogos y sillones, y la contraseña no tiene nada que devolver.
+
+### Editar el nombre de usuarios (1b-12g)
+- `PUT /api/users/{id}/full-name` cambia el nombre de cuentas de Recepción y Admin, en la línea de `/email`, `/password` y `/role` (un sub-recurso por dato). Las cuentas de odontólogos dan `VALIDATION`: su nombre se recalcula desde la ficha con `PUT /api/dentists/{id}`.
+- El token lleva `email`, `name` y `role`; tras un cambio, un token anterior conserva los datos viejos hasta que expira. Se amplió la nota de tokens en `docs/traspaso.md`, que ahora advierte que un Admin degradado conserva el acceso de Admin hasta que su token expira.
+**Motivo:** las cuentas de odontólogos se mantienen en un solo lugar, y el límite de los tokens es el mismo ya aceptado al desactivar usuarios.
