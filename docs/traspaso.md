@@ -21,7 +21,7 @@ Aplicación web para un consultorio odontológico. Proyecto de portafolio (reini
 - Primer administrador (opcional): la API lo crea al arrancar si no existe ningún Admin. En desarrollo, una sola vez desde `Backend/`: `dotnet user-secrets set "Seed:Admin:Email" "admin@citadent.local" --project WebApiRest`, lo mismo con `Seed:Admin:FullName` y `Seed:Admin:Password` (mínimo 12 caracteres). Fuera de desarrollo, variables `Seed__Admin__Email`, `Seed__Admin__FullName` y `Seed__Admin__Password`. Sin las tres claves se omite con un aviso en el log; con una contraseña corta la API no arranca.
 - Endpoints disponibles: `POST /api/auth/login` (anónimo); `/api/procedures` (GET para cualquier rol; POST, PUT y `/{id}/activate|deactivate` solo Admin). `/api/patients` (`GET` con `term`, `includeInactive`, `page` y `pageSize`, y `GET /{id}`, para cualquier rol; POST, PUT y `/{id}/activate|deactivate` solo Admin y Reception; no hay DELETE, RN-11). `/api/chairs` (GET con `includeInactive` y `GET /{id}` para cualquier rol; POST, PUT y `/{id}/activate|deactivate` solo Admin; no hay DELETE). `/api/dentists` (GET con `includeInactive` y `GET /{id}`, con el horario, para cualquier rol; `POST` crea el odontólogo y su usuario, `PUT /{id}` edita nombre, apellido, licencia y especialidad (y el nombre completo de su usuario), `PUT /{id}/schedule` reemplaza el horario con un arreglo `[{ day, start, end }]` y `POST /{id}/activate|deactivate` activa o desactiva al odontólogo junto con su usuario; todos solo Admin; no hay DELETE). Los enums viajan como texto.
 - `dotnet ef` se ejecuta desde `Backend/` con `--project Infrastructure --startup-project WebApiRest`.
-- `dotnet test`: 690 pruebas (169 de dominio, 162 de Application, 99 de Infrastructure y 260 de la API en `Tests/WebApiRest.Tests`; las de Infrastructure y API necesitan la base del compose y crean una base temporal por clase de pruebas).
+- `dotnet test`: 760 pruebas (188 de dominio, 202 de Application, 103 de Infrastructure y 267 de la API en `Tests/WebApiRest.Tests`; las de Infrastructure y API necesitan la base del compose y crean una base temporal por clase de pruebas).
 
 ## Estructura (Backend)
 - `Domain/`: Common (Entity, DomainException, TimeRange, Guard), Procedures, Patients (EcuadorianId), Scheduling (Dentist, WorkingHours, Chair, ScheduleBlock), Appointments (Appointment, AppointmentStatus, SchedulingContext).
@@ -35,7 +35,7 @@ Aplicación web para un consultorio odontológico. Proyecto de portafolio (reini
 - IDs: `Guid.CreateVersion7()`.
 - La zona horaria (America/Guayaquil) y la fecha de "hoy" se pasan como parámetro; el dominio no tiene reloj. En Application, `ClinicClock` da `Today` y `Now` en la zona de `Clinic:TimeZone` (`appsettings.json`).
 - Solo las citas en estado Scheduled (1) ocupan tiempo.
-- Casos de uso: comando + manejador `ICommandHandler<,>` (registro automático con `AddApplication()`); se guarda una vez al final con `IUnitOfWork`, los repositorios no guardan. Ejemplo: `SeedInitialAdminHandler`. Consultas: `IQueryHandler<,>`. Errores de Application: `NOT-FOUND` y `DUPLICATE` (`ApplicationErrorCodes`). Listas paginadas: `PagedResult<T>` y `Paging` (página desde 1, tamaño 1..100); una página más allá del final devuelve ítems vacíos con el total.
+- Casos de uso: comando + manejador `ICommandHandler<,>` (registro automático con `AddApplication()`); se guarda una vez al final con `IUnitOfWork`, los repositorios no guardan. Ejemplo: `SeedInitialAdminHandler`. Consultas: `IQueryHandler<,>`. Errores de Application: `NOT-FOUND`, `DUPLICATE` y `LAST-ADMIN` (`ApplicationErrorCodes`; el estado HTTP de `LAST-ADMIN` se fija en 1b-12f). Listas paginadas: `PagedResult<T>` y `Paging` (página desde 1, tamaño 1..100); una página más allá del final devuelve ítems vacíos con el total.
 - Auditoría: propiedades sombra CreatedAt/UpdatedAt rellenadas en SaveChanges con TimeProvider.
 
 ## Reglas de negocio (RN-01..RN-19)
@@ -61,6 +61,7 @@ Restricciones EXCLUDE (btree_gist) `ex_appointments_dentist_no_overlap` y `ex_ap
 5. Pruebas de Application y de la API.
 
 ## Límites conocidos
+- La regla de "al menos un Admin activo" se revisa en Application sin bloqueo: si dos Admins se desactivan o degradan uno al otro al mismo tiempo, podría no quedar ninguno. La siembra del Admin inicial no lo arregla, porque solo actúa si no existe ningún Admin (ni siquiera inactivo); habría que reactivarlo directamente en la base.
 - Desactivar un usuario (por ejemplo, un odontólogo) le impide iniciar sesión, pero un token ya emitido sigue sirviendo hasta que expira (`Jwt:ExpirationMinutes`, 60 minutos). Cortarlo antes requiere revisar `IsActive` en cada solicitud o revocar tokens.
 - `updated_at` del dentista no cambia si solo cambia su horario semanal.
 - Faltan índices secundarios en las columnas de propiedades complejas.

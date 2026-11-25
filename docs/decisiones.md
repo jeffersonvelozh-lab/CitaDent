@@ -103,3 +103,12 @@ La API lee y escribe los enums por su nombre (`"documentType": "Cedula"`), con `
 - Desactivar no cancela ni revisa sus citas `Scheduled`. Impedir agendar con un odontólogo inactivo le toca a la tarea 1b-15 (agendar cita).
 - Un token ya emitido sigue sirviendo hasta que expira (60 minutos); queda como límite conocido en `docs/traspaso.md`.
 **Motivo:** el usuario y la ficha del odontólogo tienen que estar en el mismo estado. Cancelar citas automáticamente es una decisión de negocio que el plan no pide, y revocar tokens no compensa todavía con expiraciones cortas.
+
+### Gestión de cuentas de usuario (1b-12e)
+- La tarea de usuarios se dividió en **1b-12e** (dominio, casos de uso y repositorio) y **1b-12f** (endpoints `/api/users`). Editar el nombre de usuarios de Recepción y Admin queda en **1b-12g**.
+- Un Admin crea cuentas de Recepción y Admin (los odontólogos se crean con su ficha), cambia el correo (único, `DUPLICATE`), restablece la contraseña sin pedir la anterior (mínimo 12 caracteres, igual que el Admin inicial), cambia el rol y activa o desactiva. `UserDto` nunca incluye el hash.
+- El rol solo cambia entre Admin y Recepción: el dominio (`User.ChangeRole`) rechaza dar o quitar el rol Dentist con `VALIDATION`, porque ese rol va ligado a una ficha de odontólogo.
+- Las cuentas de odontólogos aparecen al listar y consultar, y se les puede cambiar el correo o la contraseña; activarlas o desactivarlas por esta vía da `VALIDATION`, porque se hace con `/api/dentists` junto con la ficha.
+- Desactivar al último Admin activo, o quitarle el rol, da el código nuevo `LAST-ADMIN` (en `ApplicationErrorCodes`; ninguna regla RN lo cubre). Un Admin inactivo no cuenta; desactivar o degradar a un Admin que ya está inactivo se permite, porque no reduce los Admins activos. Un Admin puede desactivarse a sí mismo si queda otro activo.
+- La unicidad del correo usa `IUserRepository.EmailExistsAsync(email, excludingId)`, igual que la licencia y los nombres de sillón; el correo ya se guarda en minúsculas, así que la comparación es exacta.
+**Motivo:** la clínica nunca debe quedar sin quien administre las cuentas, y el rol Dentist sin ficha (o una ficha sin ese rol) dejaría datos inconsistentes. La revisión del último Admin no usa bloqueo; el límite está en `docs/traspaso.md`.
