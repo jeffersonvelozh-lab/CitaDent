@@ -6,6 +6,10 @@ namespace Application.Common;
 /// </summary>
 public interface IUnitOfWork
 {
-    /// <summary>Saves the pending changes and returns how many rows were written.</summary>
+    /// <summary>
+    /// Saves the pending changes and returns how many rows were written. When the database rejects an appointment
+    /// that overlaps another one of the same dentist or chair, it throws
+    /// <see cref="Appointments.ScheduleConflictException"/> and nothing is saved.
+    /// </summary>
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }

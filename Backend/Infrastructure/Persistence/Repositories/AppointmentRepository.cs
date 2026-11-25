@@ -7,6 +7,12 @@ namespace Infrastructure.Persistence.Repositories;
 
 public sealed class AppointmentRepository(CitaDentDbContext context) : IAppointmentRepository
 {
+    // Tracked, so the use case can change it and save through the unit of work.
+    public Task<Appointment?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default) =>
+        context.Appointments.SingleOrDefaultAsync(a => a.Id == id, cancellationToken);
+
+    public void Add(Appointment appointment) => context.Appointments.Add(appointment);
+
     public async Task<IReadOnlyList<Appointment>> ListScheduledOverlappingAsync(
         TimeRange slot,
         Guid dentistId,

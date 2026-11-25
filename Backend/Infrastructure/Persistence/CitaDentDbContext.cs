@@ -1,3 +1,4 @@
+using Application.Appointments;
 using Application.Common;
 using Domain.Appointments;
 using Domain.Common;
@@ -58,12 +59,25 @@ public class CitaDentDbContext(DbContextOptions<CitaDentDbContext> options, Time
         return base.SaveChanges(acceptAllChangesOnSuccess);
     }
 
-    public override Task<int> SaveChangesAsync(
+    /// <summary>
+    /// Saves in one transaction. An appointment that overlaps another one of the same dentist or chair is
+    /// rejected by the database (SqlState 23P01) and turned into <see cref="ScheduleConflictException"/>, so the
+    /// use cases never see EF or Npgsql types. Only here: use cases save through IUnitOfWork, which is async.
+    /// </summary>
+    public override async Task<int> SaveChangesAsync(
         bool acceptAllChangesOnSuccess,
         CancellationToken cancellationToken = default)
     {
         ApplyAuditTimestamps();
-        return base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
+
+        try
+        {
+            return await base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
+        }
+        catch (DbUpdateException exception) when (AppointmentOverlapConstraints.Find(exception) is { } conflict)
+        {
+            throw new ScheduleConflictException(conflict, exception);
+        }
     }
 
     private void ApplyAuditTimestamps()
