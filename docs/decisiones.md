@@ -97,3 +97,9 @@ La API lee y escribe los enums por su nombre (`"documentType": "Cedula"`), con `
 - `IDentistRepository.LicenseNumberExistsAsync` recibe `excludingId`, como `IChairRepository.NameExistsAsync`: un odontólogo puede conservar su propia licencia escrita con otras mayúsculas.
 - Si el odontólogo existe pero su `User` no, se lanza `InvalidOperationException` (500) y no `NOT-FOUND`: la llave foránea lo impide, así que sería un dato roto y no un error de quien llama.
 **Motivo:** el nombre del usuario debe coincidir con la ficha del odontólogo, y separar editar de activar mantiene las tareas pequeñas.
+
+### Activar y desactivar odontólogos (1b-12d)
+- `POST /api/dentists/{id}/activate|deactivate` cambia en la misma operación el `Dentist` y su `User`. Un odontólogo inactivo no inicia sesión (el login ya rechazaba usuarios inactivos con el mismo 401 de credenciales inválidas) y sale de `GET /api/dentists` salvo con `includeInactive=true`. Pedir el estado que ya tiene responde 204 y no es error. Los odontólogos no se borran, porque las citas guardan su id.
+- Desactivar no cancela ni revisa sus citas `Scheduled`. Impedir agendar con un odontólogo inactivo le toca a la tarea 1b-15 (agendar cita).
+- Un token ya emitido sigue sirviendo hasta que expira (60 minutos); queda como límite conocido en `docs/traspaso.md`.
+**Motivo:** el usuario y la ficha del odontólogo tienen que estar en el mismo estado. Cancelar citas automáticamente es una decisión de negocio que el plan no pide, y revocar tokens no compensa todavía con expiraciones cortas.
