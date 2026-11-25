@@ -131,3 +131,10 @@ La API lee y escribe los enums por su nombre (`"documentType": "Cedula"`), con `
 - Se permiten bloqueos solapados entre sí y para odontólogos inactivos. Las citas `Scheduled` que ya caen en el rango se conservan (límite anotado en `docs/traspaso.md`).
 - Nuevo convertidor JSON global `OffsetRequiredDateTimeOffsetConverter`: un `DateTimeOffset` sin desfase (`"2026-12-24T08:00:00"`) da 400 `VALIDATION`. Sin él, .NET usaría la zona horaria del servidor, que cambia entre la máquina de desarrollo y el hosting. Las respuestas siguen en ISO 8601 con desfase.
 **Motivo:** que un bloqueo caiga en la hora correcta no puede depender de dónde corre la API, y la regla RN-05 ya vive en el dominio, así que aquí solo hace falta guardarlos y quitarlos.
+
+### Listar bloqueos de agenda (1b-13b)
+- `GET /api/schedule-blocks?from=&to=` recibe **días de la clínica** (`yyyy-MM-dd`, ambos incluidos), no instantes: el caso de uso los convierte a `[from 00:00, to + 1 día 00:00)` con la zona de `ClinicClock`. La agenda se consulta por días, y en la URL no actúa el convertidor JSON que exige desfase.
+- El día se lee como texto y solo se acepta `yyyy-MM-dd`: el enlace de ASP.NET leería `01/03/2031` como 3 de enero (orden de EE. UU.), cuando en Ecuador significa 1 de marzo. Igual que `role` en `/api/users`.
+- `from` y `to` son obligatorios y el rango tiene como máximo 366 días, así que la lista no se pagina. Entran los bloqueos que se solapan con el rango (uno que termina justo al empezar no entra).
+- Con `dentistId` vienen sus bloqueos y, salvo `includeClinicWide=false`, los de toda la clínica; sin `dentistId`, los de todos los odontólogos. Un odontólogo inexistente da una lista sin bloqueos propios (200), porque es un filtro. Orden: inicio y luego id.
+**Motivo:** la agenda de un odontólogo también debe mostrar los feriados, y un rango acotado mantiene la consulta barata sin índice nuevo; el índice se evalúa en 1b-14.
