@@ -180,6 +180,101 @@ public class ScheduleBlocksEndpointTests(CitaDentApiFactory factory) : IClassFix
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
 
+    // List. Its blocks are in March 2031, away from the other tests of this class.
+
+    private async Task<Guid> CreateInMarch2031Async(Guid? dentistId, string startsAt, string endsAt) =>
+        await CreateAsync(body: Block(dentistId, $"2031-03-{startsAt}-05:00", $"2031-03-{endsAt}-05:00", "Bloqueo"));
+
+    private async Task<List<Guid>> ListIdsAsync(string query, HttpClient? client = null)
+    {
+        var response = await (client ?? _reception).GetAsync($"{Url}?{query}");
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        return (await ReadAsync(response)).EnumerateArray().Select(b => b.GetProperty("id").GetGuid()).ToList();
+    }
+
+    [Theory]
+    [InlineData(UserRole.Admin)]
+    [InlineData(UserRole.Reception)]
+    [InlineData(UserRole.Dentist)]
+    public async Task List_WorksForEveryRole(UserRole role)
+    {
+        var id = await CreateInMarch2031Async(null, "03T08:00:00", "03T12:00:00");
+
+        var ids = await ListIdsAsync("from=2031-03-03&to=2031-03-03", factory.CreateClientWithToken(role));
+
+        Assert.Contains(id, ids);
+    }
+
+    [Fact]
+    public async Task List_ReadsTheDaysAtTheClinic_AndOrdersByStart()
+    {
+        // 23:00 on March 4 at the clinic is already March 5 in UTC, but it belongs to March 4.
+        var lateAtNight = await CreateInMarch2031Async(null, "04T23:00:00", "04T23:30:00");
+        var morning = await CreateInMarch2031Async(null, "04T08:00:00", "04T09:00:00");
+        var nextDay = await CreateInMarch2031Async(null, "05T08:00:00", "05T09:00:00");
+
+        var ids = await ListIdsAsync("from=2031-03-04&to=2031-03-04");
+
+        Assert.Contains(lateAtNight, ids);
+        Assert.Contains(morning, ids);
+        Assert.True(ids.IndexOf(morning) < ids.IndexOf(lateAtNight));
+        Assert.DoesNotContain(nextDay, ids);
+    }
+
+    [Fact]
+    public async Task List_ForADentist_IncludesTheClinicBlocksUnlessAskedNotTo()
+    {
+        var dentistId = await RegisterDentistAsync();
+        var own = await CreateInMarch2031Async(dentistId, "06T08:00:00", "06T12:00:00");
+        var otherDentist = await CreateInMarch2031Async(await RegisterDentistAsync(), "06T08:00:00", "06T12:00:00");
+        var clinic = await CreateInMarch2031Async(null, "06T00:00:00", "07T00:00:00");
+
+        var withClinic = await ListIdsAsync($"from=2031-03-06&to=2031-03-06&dentistId={dentistId}");
+        var withoutClinic = await ListIdsAsync($"from=2031-03-06&to=2031-03-06&dentistId={dentistId}&includeClinicWide=false");
+
+        Assert.Equal([clinic, own], withClinic);
+        Assert.DoesNotContain(otherDentist, withClinic);
+        Assert.Equal([own], withoutClinic);
+    }
+
+    [Fact]
+    public async Task List_ForADentistThatDoesNotExist_ReturnsOnlyTheClinicBlocks()
+    {
+        var clinic = await CreateInMarch2031Async(null, "07T08:00:00", "07T12:00:00");
+
+        var withClinic = await ListIdsAsync($"from=2031-03-07&to=2031-03-07&dentistId={Guid.CreateVersion7()}");
+        var withoutClinic = await ListIdsAsync(
+            $"from=2031-03-07&to=2031-03-07&dentistId={Guid.CreateVersion7()}&includeClinicWide=false");
+
+        Assert.Contains(clinic, withClinic);
+        Assert.Empty(withoutClinic);
+    }
+
+    [Theory]
+    [InlineData("to=2031-03-31")]
+    [InlineData("from=2031-03-01")]
+    [InlineData("from=01/03/2031&to=2031-03-31")] // Would be read as January 3.
+    [InlineData("from=2031-3-1&to=2031-03-31")]
+    [InlineData("from=2031-03-01T00:00:00&to=2031-03-31")]
+    [InlineData("from=&to=2031-03-31")]
+    [InlineData("from=2031-03-01&to=2031-02-28")]
+    [InlineData("from=2031-01-01&to=2032-01-02")] // 367 days.
+    [InlineData("from=2031-03-01&to=2031-03-31&dentistId=abc")]
+    public async Task List_WithMissingMalformedReversedOrTooLongDays_Returns400Validation(string query)
+    {
+        var response = await _reception.GetAsync($"{Url}?{query}");
+
+        await AssertProblemAsync(response, HttpStatusCode.BadRequest, "VALIDATION");
+    }
+
+    [Fact]
+    public async Task List_WithoutToken_Returns401()
+    {
+        var response = await factory.CreateClient().GetAsync($"{Url}?from=2031-03-01&to=2031-03-31");
+
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
+
     // Remove
 
     [Theory]

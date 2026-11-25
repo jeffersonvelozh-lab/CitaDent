@@ -1,4 +1,6 @@
+using System.Globalization;
 using Application.ScheduleBlocks;
+using Domain.Common;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using WebApiRest.Contracts.ScheduleBlocks;
@@ -15,6 +17,33 @@ namespace WebApiRest.Controllers;
 [Route("api/schedule-blocks")]
 public sealed class ScheduleBlocksController : ControllerBase
 {
+    /// <summary>
+    /// The blocks that touch the clinic days <paramref name="from"/> to <paramref name="to"/> (both included,
+    /// yyyy-MM-dd, at most 366 days), ordered by start. With <paramref name="dentistId"/>, only that dentist's;
+    /// without it, every dentist's. The whole-clinic blocks come too unless <paramref name="includeClinicWide"/>
+    /// is false. An unknown dentist gives an empty list.
+    /// </summary>
+    [HttpGet]
+    [ProducesResponseType<IReadOnlyList<ScheduleBlockDto>>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status400BadRequest)]
+    public Task<IReadOnlyList<ScheduleBlockDto>> List(
+        [FromServices] ListScheduleBlocksHandler handler,
+        CancellationToken cancellationToken,
+        [FromQuery] string? from = null,
+        [FromQuery] string? to = null,
+        [FromQuery] Guid? dentistId = null,
+        [FromQuery] bool includeClinicWide = true) =>
+        handler.HandleAsync(
+            new ListScheduleBlocksQuery(ParseDay(from, nameof(from)), ParseDay(to, nameof(to)), dentistId, includeClinicWide),
+            cancellationToken);
+
+    // Query binding would read "01/03/2031" as January 3 (US order), while in Ecuador it means March 1,
+    // so a day is read as text and only yyyy-MM-dd is accepted, the same as DateOnly in JSON bodies.
+    private static DateOnly ParseDay(string? value, string name) =>
+        DateOnly.TryParseExact(value?.Trim(), "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var day)
+            ? day
+            : throw new DomainException(DomainException.ValidationCode, $"The \"{name}\" day is required, as yyyy-MM-dd.");
+
     [HttpGet("{id:guid}")]
     [ProducesResponseType<ScheduleBlockDto>(StatusCodes.Status200OK)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
