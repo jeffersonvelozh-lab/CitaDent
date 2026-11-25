@@ -65,6 +65,12 @@ public sealed class CitaDentApiFactory : WebApplicationFactory<Program>
     /// <summary>A client that sends a valid token for a user with the given role.</summary>
     public HttpClient CreateClientWithToken(UserRole role) => CreateClientWithToken(IssueToken(role));
 
+    /// <summary>
+    /// A client that sends a valid token for <paramref name="user"/>. Use it with a user saved in the database (such
+    /// as <see cref="ActiveUser"/>) when the endpoint stores who made the change, because that column references users.
+    /// </summary>
+    public HttpClient CreateClientForUser(User user) => CreateClientWithToken(IssueToken(user));
+
     public HttpClient CreateClientWithToken(string token)
     {
         var client = CreateClient();
@@ -82,6 +88,18 @@ public sealed class CitaDentApiFactory : WebApplicationFactory<Program>
         string issuer = Issuer,
         TimeProvider? clock = null)
     {
+        var user = User.Create($"{role.ToString().ToLowerInvariant()}@citadent.test", $"Test {role}", "hash", role);
+
+        return IssueToken(user, signingKey, issuer, clock);
+    }
+
+    /// <summary>Issues a token for this user, the same way the API does.</summary>
+    public static string IssueToken(
+        User user,
+        string signingKey = SigningKey,
+        string issuer = Issuer,
+        TimeProvider? clock = null)
+    {
         var settings = new JwtOptions
         {
             Issuer = issuer,
@@ -89,7 +107,6 @@ public sealed class CitaDentApiFactory : WebApplicationFactory<Program>
             SigningKey = signingKey,
             ExpirationMinutes = 60
         };
-        var user = User.Create($"{role.ToString().ToLowerInvariant()}@citadent.test", $"Test {role}", "hash", role);
 
         return new JwtAccessTokenIssuer(Options.Create(settings), clock ?? TimeProvider.System).Issue(user).Value;
     }
