@@ -10,6 +10,7 @@ public class ErrorStatusCodesTests
     [InlineData("AUTH-INVALID-CREDENTIALS", 401)]
     [InlineData("NOT-FOUND", 404)]
     [InlineData("DUPLICATE", 409)]
+    [InlineData("LAST-ADMIN", 409)]
     [InlineData("RN-01", 422)]
     [InlineData("RN-02", 409)]
     [InlineData("RN-03", 409)]

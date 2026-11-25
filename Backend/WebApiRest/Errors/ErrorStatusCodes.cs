@@ -27,6 +27,9 @@ public static class ErrorStatusCodes
         [ApplicationErrorCodes.NotFound] = StatusCodes.Status404NotFound,
         [ApplicationErrorCodes.Duplicate] = StatusCodes.Status409Conflict,
 
+        // The change would leave the clinic without an active administrator.
+        [ApplicationErrorCodes.LastActiveAdmin] = StatusCodes.Status409Conflict,
+
         // Permission rules: who completes an appointment, who sees clinical notes, who voids a payment.
         ["RN-09"] = StatusCodes.Status403Forbidden,
         ["RN-15"] = StatusCodes.Status403Forbidden,
