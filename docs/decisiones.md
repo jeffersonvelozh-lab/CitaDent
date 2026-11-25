@@ -157,3 +157,11 @@ La API lee y escribe los enums por su nombre (`"documentType": "Cedula"`), con `
 - `POST /api/appointments` es para Admin y Recepción (`StaffWithAgendaAccess`); `GET /api/appointments/{id}` es para cualquier rol. El cuerpo no lleva el fin (RN-01) ni el usuario: `CreatedByUserId` sale del claim `sub` con `User.GetUserId()` (`WebApiRest/Security/ClaimsPrincipalExtensions.cs`). Un token sin `sub` válido es un error del programa (500), porque todos los tokens de la API lo llevan.
 - Las pruebas de la API que guardan un autor usan usuarios reales de la base: Recepción con `CitaDentApiFactory.CreateClientForUser(ActiveUser)` y Admin con el token del login del Admin sembrado. No se agregó otro Admin a la fábrica, porque cambiaría las pruebas del último Admin.
 **Motivo:** quién agenda tiene que ser quien tiene la sesión, no un dato que el cliente pueda inventar, y la clave foránea `created_by_user_id` exige que exista.
+
+### Cancelar, completar y marcar inasistencia (1b-16)
+- `POST /api/appointments/{id}/cancel` (con motivo, RN-08) y `/no-show` son para Admin y Recepción, que llevan la agenda; el odontólogo no. `/complete` usa la política `ClinicalAccess` (Admin y Dentist) y, además, **RN-09 en Application**: un Admin completa cualquier cita; un odontólogo solo la suya, comparando el `sub` del token con `Dentist.UserId`. Los tres responden 200 con la cita.
+- El rol de RN-09 sale del token (`User.GetUserRole()`, solo nombres definidos), igual que las políticas.
+- **Reglas de tiempo nuevas** (las reglas RN no decían nada; las aprobó Jefferson): se cancela solo **antes** del inicio, y se completa o marca inasistencia solo **desde** el inicio; si no, `VALIDATION` (400). Se revisan solo para una cita `Scheduled`, así que para una cita en otro estado responde RN-07, que explica más. Orden en completar: RN-09, después RN-07 y después la hora.
+- Las pruebas de la API guardan las citas pasadas directo en la base con `CitaDentApiFactory.SaveInDatabase`, porque la API no agenda en el pasado (RN-06).
+- Dos cambios de estado simultáneos de la misma cita no se detectan; queda como límite en `docs/traspaso.md`.
+**Motivo:** quien completa una cita es quien la atendió; las reglas de tiempo evitan marcar como atendida o ausente una cita que no ha llegado, o cancelar una que ya pasó.
