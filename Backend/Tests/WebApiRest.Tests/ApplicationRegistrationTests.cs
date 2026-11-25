@@ -34,6 +34,14 @@ public class ApplicationRegistrationTests(CitaDentApiFactory factory) : IClassFi
     }
 
     [Fact]
+    public void SchedulingContextLoader_Resolves()
+    {
+        using var scope = factory.Services.CreateScope();
+
+        Assert.NotNull(scope.ServiceProvider.GetRequiredService<Application.Appointments.SchedulingContextLoader>());
+    }
+
+    [Fact]
     public void UnitOfWork_IsTheSameDbContextTheRepositoriesUse()
     {
         using var scope = factory.Services.CreateScope();

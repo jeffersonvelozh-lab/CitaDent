@@ -1,3 +1,4 @@
+using Application.Appointments;
 using Application.Common;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -23,6 +24,9 @@ public static class DependencyInjection
                 services.AddScoped(contract, provider => provider.GetRequiredService(handler));
             }
         }
+
+        // Helpers shared by use cases, which are not handlers themselves.
+        services.AddScoped<SchedulingContextLoader>();
 
         return services;
     }

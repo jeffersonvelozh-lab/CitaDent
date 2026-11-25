@@ -1,3 +1,4 @@
+using Application.Appointments;
 using Application.Chairs;
 using Application.Common;
 using Application.Dentists;
@@ -56,6 +57,7 @@ public static class DependencyInjection
         services.AddScoped<IChairRepository, ChairRepository>();
         services.AddScoped<IDentistRepository, DentistRepository>();
         services.AddScoped<IScheduleBlockRepository, ScheduleBlockRepository>();
+        services.AddScoped<IAppointmentRepository, AppointmentRepository>();
 
         return services;
     }
