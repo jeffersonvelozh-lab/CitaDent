@@ -10,7 +10,7 @@ namespace WebApiRest.Controllers;
 /// <summary>
 /// Dentists and their weekly schedules. Any signed-in role reads them (reception books with them, a dentist
 /// sees their schedule); only an admin registers a dentist, with the user account they sign in with, edits
-/// their data and replaces a schedule. Errors (VALIDATION, NOT-FOUND, DUPLICATE) are answered by the central error handling.
+/// their data, replaces a schedule and activates or deactivates them (they are never deleted). Errors (VALIDATION, NOT-FOUND, DUPLICATE) are answered by the central error handling.
 /// </summary>
 [ApiController]
 [Route("api/dentists")]
@@ -100,4 +100,39 @@ public sealed class DentistsController : ControllerBase
                 id,
                 hours.Select(h => new WorkingHoursDto(h.Day!.Value, h.Start!.Value, h.End!.Value)).ToList()),
             cancellationToken);
+
+    /// <summary>Activates the dentist and their user account, so they can sign in again.</summary>
+    [HttpPost("{id:guid}/activate")]
+    [Authorize(Policy = AuthorizationPolicies.AdminOnly)]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    public Task<IActionResult> Activate(
+        Guid id,
+        [FromServices] SetDentistActiveHandler handler,
+        CancellationToken cancellationToken) =>
+        SetActive(id, isActive: true, handler, cancellationToken);
+
+    /// <summary>
+    /// Deactivates the dentist and their user account: they no longer sign in and leave the default list.
+    /// Appointments already booked are not touched.
+    /// </summary>
+    [HttpPost("{id:guid}/deactivate")]
+    [Authorize(Policy = AuthorizationPolicies.AdminOnly)]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    public Task<IActionResult> Deactivate(
+        Guid id,
+        [FromServices] SetDentistActiveHandler handler,
+        CancellationToken cancellationToken) =>
+        SetActive(id, isActive: false, handler, cancellationToken);
+
+    private async Task<IActionResult> SetActive(
+        Guid id,
+        bool isActive,
+        SetDentistActiveHandler handler,
+        CancellationToken cancellationToken)
+    {
+        await handler.HandleAsync(new SetDentistActiveCommand(id, isActive), cancellationToken);
+        return NoContent();
+    }
 }

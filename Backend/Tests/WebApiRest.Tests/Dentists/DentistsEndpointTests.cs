@@ -211,15 +211,19 @@ public class DentistsEndpointTests(CitaDentApiFactory factory) : IClassFixture<C
     }
 
     [Fact]
-    public async Task List_WithInactiveFlag_Returns200()
+    public async Task List_LeavesOutInactiveDentists_UnlessIncludeInactive()
     {
-        // No endpoint deactivates dentists yet, so this only checks that the flag is accepted.
         var id = await RegisterAsync();
+        Assert.Equal(HttpStatusCode.NoContent, (await _admin.PostAsync($"{Url}/{id}/deactivate", null)).StatusCode);
 
-        var response = await _admin.GetAsync($"{Url}?includeInactive=true");
+        var actives = await _admin.GetAsync(Url);
+        var all = await _admin.GetAsync($"{Url}?includeInactive=true");
 
-        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        Assert.Contains((await ReadAsync(response)).EnumerateArray(), d => d.GetProperty("id").GetGuid() == id);
+        Assert.Equal(HttpStatusCode.OK, actives.StatusCode);
+        Assert.DoesNotContain((await ReadAsync(actives)).EnumerateArray(), d => d.GetProperty("id").GetGuid() == id);
+        Assert.Equal(HttpStatusCode.OK, all.StatusCode);
+        var listed = (await ReadAsync(all)).EnumerateArray().Single(d => d.GetProperty("id").GetGuid() == id);
+        Assert.False(listed.GetProperty("isActive").GetBoolean());
     }
 
     [Fact]
@@ -476,6 +480,91 @@ public class DentistsEndpointTests(CitaDentApiFactory factory) : IClassFixture<C
     {
         var response = await factory.CreateClient()
             .PutAsJsonAsync($"{Url}/{Guid.NewGuid()}/schedule", new[] { Block("Monday", "08:00", "12:00") });
+
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
+
+    // Activate and deactivate
+
+    private Task<HttpResponseMessage> LoginAsync(string email) =>
+        factory.CreateClient().PostAsJsonAsync("/api/auth/login", new { email, password = Password });
+
+    private async Task<bool> IsActiveAsync(Guid id) =>
+        (await ReadAsync(await _admin.GetAsync($"{Url}/{id}"))).GetProperty("isActive").GetBoolean();
+
+    [Fact]
+    public async Task DeactivateAndActivate_AsAdmin_Return204AndToggleTheState()
+    {
+        var id = await RegisterAsync();
+
+        var deactivate = await _admin.PostAsync($"{Url}/{id}/deactivate", null);
+
+        Assert.Equal(HttpStatusCode.NoContent, deactivate.StatusCode);
+        Assert.False(await IsActiveAsync(id));
+
+        var activate = await _admin.PostAsync($"{Url}/{id}/activate", null);
+
+        Assert.Equal(HttpStatusCode.NoContent, activate.StatusCode);
+        Assert.True(await IsActiveAsync(id));
+    }
+
+    [Fact]
+    public async Task Deactivate_TwiceInARow_Returns204BothTimes()
+    {
+        var id = await RegisterAsync();
+
+        Assert.Equal(HttpStatusCode.NoContent, (await _admin.PostAsync($"{Url}/{id}/deactivate", null)).StatusCode);
+        Assert.Equal(HttpStatusCode.NoContent, (await _admin.PostAsync($"{Url}/{id}/deactivate", null)).StatusCode);
+        Assert.False(await IsActiveAsync(id));
+    }
+
+    [Fact]
+    public async Task ADeactivatedDentist_CannotSignIn_AndCanAgainOnceReactivated()
+    {
+        var email = NewEmail();
+        var id = await RegisterAsync(Registration(email));
+        Assert.Equal(HttpStatusCode.OK, (await LoginAsync(email)).StatusCode);
+
+        Assert.Equal(HttpStatusCode.NoContent, (await _admin.PostAsync($"{Url}/{id}/deactivate", null)).StatusCode);
+
+        await AssertProblemAsync(await LoginAsync(email), HttpStatusCode.Unauthorized, "AUTH-INVALID-CREDENTIALS");
+
+        Assert.Equal(HttpStatusCode.NoContent, (await _admin.PostAsync($"{Url}/{id}/activate", null)).StatusCode);
+
+        Assert.Equal(HttpStatusCode.OK, (await LoginAsync(email)).StatusCode);
+    }
+
+    [Theory]
+    [InlineData("activate")]
+    [InlineData("deactivate")]
+    public async Task SetActive_UnknownId_Returns404NotFound(string action)
+    {
+        var response = await _admin.PostAsync($"{Url}/{Guid.NewGuid()}/{action}", null);
+
+        await AssertProblemAsync(response, HttpStatusCode.NotFound, "NOT-FOUND");
+    }
+
+    [Theory]
+    [InlineData(UserRole.Reception, "activate")]
+    [InlineData(UserRole.Reception, "deactivate")]
+    [InlineData(UserRole.Dentist, "activate")]
+    [InlineData(UserRole.Dentist, "deactivate")]
+    public async Task SetActive_WithoutAdminRole_Returns403AndChangesNothing(UserRole role, string action)
+    {
+        var id = await RegisterAsync();
+
+        var response = await factory.CreateClientWithToken(role).PostAsync($"{Url}/{id}/{action}", null);
+
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+        Assert.True(await IsActiveAsync(id));
+    }
+
+    [Theory]
+    [InlineData("activate")]
+    [InlineData("deactivate")]
+    public async Task SetActive_WithoutToken_Returns401(string action)
+    {
+        var response = await factory.CreateClient().PostAsync($"{Url}/{Guid.NewGuid()}/{action}", null);
 
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
