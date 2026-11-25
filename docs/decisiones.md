@@ -123,3 +123,11 @@ La API lee y escribe los enums por su nombre (`"documentType": "Cedula"`), con `
 - `PUT /api/users/{id}/full-name` cambia el nombre de cuentas de Recepción y Admin, en la línea de `/email`, `/password` y `/role` (un sub-recurso por dato). Las cuentas de odontólogos dan `VALIDATION`: su nombre se recalcula desde la ficha con `PUT /api/dentists/{id}`.
 - El token lleva `email`, `name` y `role`; tras un cambio, un token anterior conserva los datos viejos hasta que expira. Se amplió la nota de tokens en `docs/traspaso.md`, que ahora advierte que un Admin degradado conserva el acceso de Admin hasta que su token expira.
 **Motivo:** las cuentas de odontólogos se mantienen en un solo lugar, y el límite de los tokens es el mismo ya aceptado al desactivar usuarios.
+
+### Bloqueos de agenda (1b-13a)
+- La tarea se dividió en **1b-13a** (crear, consultar y quitar) y **1b-13b** (listar por odontólogo y rango), porque el listado comparte consultas con la carga del `SchedulingContext` (1b-14).
+- `POST /api/schedule-blocks` y `DELETE /api/schedule-blocks/{id}` son para Admin y Recepción (`StaffWithAgendaAccess`), porque recepción maneja la agenda; `GET /{id}` es para cualquier rol. El bloqueo se borra de verdad, porque no es historial de ningún paciente. No se edita: se quita y se crea otro.
+- Un bloqueo que ya terminó (su fin es igual o anterior a `ClinicClock.Now`) da `VALIDATION`; uno en curso se permite. El rango invertido o vacío lo revisa el caso de uso como `VALIDATION`, y no como el RN-01 que daría `TimeRange`, porque aquí es un dato mal formado y no una regla de citas. Un odontólogo inexistente en el cuerpo es `VALIDATION`, no `NOT-FOUND`, porque el 404 queda para el recurso de la URL.
+- Se permiten bloqueos solapados entre sí y para odontólogos inactivos. Las citas `Scheduled` que ya caen en el rango se conservan (límite anotado en `docs/traspaso.md`).
+- Nuevo convertidor JSON global `OffsetRequiredDateTimeOffsetConverter`: un `DateTimeOffset` sin desfase (`"2026-12-24T08:00:00"`) da 400 `VALIDATION`. Sin él, .NET usaría la zona horaria del servidor, que cambia entre la máquina de desarrollo y el hosting. Las respuestas siguen en ISO 8601 con desfase.
+**Motivo:** que un bloqueo caiga en la hora correcta no puede depender de dónde corre la API, y la regla RN-05 ya vive en el dominio, así que aquí solo hace falta guardarlos y quitarlos.
