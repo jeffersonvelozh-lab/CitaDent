@@ -20,6 +20,16 @@ public interface IAppointmentRepository
         CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// The appointments that overlap <paramref name="range"/>, in every state, ordered by start and then by id,
+    /// with the names the agenda shows. The range is half-open, so one that ends when it starts is left out.
+    /// With <paramref name="dentistId"/>, only that dentist's.
+    /// </summary>
+    Task<IReadOnlyList<AgendaItemDto>> ListAgendaAsync(
+        TimeRange range,
+        Guid? dentistId,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Marks the appointment to be inserted on the next IUnitOfWork.SaveChangesAsync, which throws
     /// <see cref="ScheduleConflictException"/> if the database finds the dentist or the chair already taken.
     /// </summary>

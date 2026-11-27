@@ -42,5 +42,26 @@ internal sealed class FakeAppointmentRepository : IAppointmentRepository
         return Task.FromResult<IReadOnlyList<Appointment>>(Overlapping.ToList());
     }
 
+    /// <summary>The agenda rows ListAgendaAsync filters, as if the repository had joined the names.</summary>
+    public List<AgendaItemDto> Agenda { get; } = [];
+
+    /// <summary>The arguments of the last ListAgendaAsync call, to check how the use case turned days into instants.</summary>
+    public (TimeRange Range, Guid? DentistId)? LastAgendaQuery { get; private set; }
+
+    public Task<IReadOnlyList<AgendaItemDto>> ListAgendaAsync(
+        TimeRange range,
+        Guid? dentistId,
+        CancellationToken cancellationToken = default)
+    {
+        LastAgendaQuery = (range, dentistId);
+
+        return Task.FromResult<IReadOnlyList<AgendaItemDto>>(Agenda
+            .Where(a => a.StartsAt < range.End && range.Start < a.EndsAt)
+            .Where(a => dentistId is null || a.DentistId == dentistId)
+            .OrderBy(a => a.StartsAt)
+            .ThenBy(a => a.Id)
+            .ToList());
+    }
+
     public void Add(Appointment appointment) => _added.Add(appointment);
 }

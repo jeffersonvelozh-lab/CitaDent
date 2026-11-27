@@ -11,7 +11,8 @@ namespace Infrastructure.Tests;
 
 /// <summary>
 /// Loading the scheduling context: only the Scheduled appointments and the blocks that overlap the requested slot,
-/// for its dentist and chair. Each test uses its own dentists and chairs. All data is fictitious.
+/// for its dentist and chair; and the agenda of a range. Each test uses its own dentists and chairs. All data is
+/// fictitious.
 /// </summary>
 public class AppointmentRepositoryTests(PostgresFixture fixture) : IClassFixture<PostgresFixture>
 {
@@ -102,6 +103,122 @@ public class AppointmentRepositoryTests(PostgresFixture fixture) : IClassFixture
 
         Assert.Single(list);
         Assert.Empty(context.ChangeTracker.Entries());
+    }
+
+    // The agenda: every state, with the names joined, filtered by range and optionally by dentist.
+
+    private async Task<IReadOnlyList<AgendaItemDto>> ListAgendaAsync(TimeRange range, Guid? dentistId)
+    {
+        await using var context = fixture.CreateContext();
+        return await new AppointmentRepository(context).ListAgendaAsync(range, dentistId);
+    }
+
+    // All of Monday, December 7, at the clinic.
+    private static readonly TimeRange Monday = new(MondayAt(0, 0), MondayAt(0, 0).AddDays(1));
+
+    [Fact]
+    public async Task ListAgenda_ReturnsTheAppointmentWithTheNamesOfEveryRecord()
+    {
+        var (dentist, chair) = (SaveDentist(), SaveChair());
+        var appointment = Save(ScheduleBlindly(fixture, dentist, chair, MondayAt(9, 0)));
+
+        var item = Assert.Single(await ListAgendaAsync(Monday, dentist.Id));
+
+        Assert.Equal(appointment.Id, item.Id);
+        Assert.Equal(MondayAt(9, 0), item.StartsAt);
+        Assert.Equal(MondayAt(9, 30), item.EndsAt);
+        Assert.Equal(AppointmentStatus.Scheduled, item.Status);
+        Assert.Null(item.CancelReason);
+        Assert.Equal(fixture.SeedPatient.Id, item.PatientId);
+        Assert.Equal("Ana Pérez", item.PatientName);
+        Assert.Equal(dentist.Id, item.DentistId);
+        Assert.Equal("Carla Mora", item.DentistName);
+        Assert.Equal(chair.Id, item.ChairId);
+        Assert.Equal(chair.Name, item.ChairName);
+        Assert.Equal(fixture.SeedProcedure.Id, item.ProcedureId);
+        Assert.Equal("Cleaning", item.ProcedureName);
+    }
+
+    [Fact]
+    public async Task ListAgenda_IncludesEveryState_OrderedByStart()
+    {
+        var dentist = SaveDentist();
+
+        var cancelled = ScheduleBlindly(fixture, dentist, SaveChair(), MondayAt(11, 0));
+        cancelled.Cancel("El paciente no puede asistir");
+        var completed = ScheduleBlindly(fixture, dentist, SaveChair(), MondayAt(9, 0));
+        completed.Complete();
+        var noShow = ScheduleBlindly(fixture, dentist, SaveChair(), MondayAt(10, 0));
+        noShow.MarkNoShow();
+        var scheduled = ScheduleBlindly(fixture, dentist, SaveChair(), MondayAt(14, 0));
+        fixture.Save(cancelled, completed, noShow, scheduled);
+
+        var list = await ListAgendaAsync(Monday, dentist.Id);
+
+        Assert.Equal([completed.Id, noShow.Id, cancelled.Id, scheduled.Id], list.Select(a => a.Id));
+        Assert.Equal("El paciente no puede asistir", list[2].CancelReason);
+    }
+
+    [Fact]
+    public async Task ListAgenda_LeavesOutAppointmentsThatOnlyTouchTheRange()
+    {
+        var (dentist, chair) = (SaveDentist(), SaveChair());
+        var inside = Save(ScheduleBlindly(fixture, dentist, chair, MondayAt(9, 0)));
+        Save(ScheduleBlindly(fixture, dentist, chair, MondayAt(8, 30))); // Ends at 09:00, when the range starts.
+        Save(ScheduleBlindly(fixture, dentist, chair, MondayAt(9, 30))); // Starts at 09:30, when the range ends.
+
+        var list = await ListAgendaAsync(Slot, dentist.Id);
+
+        Assert.Equal(inside.Id, Assert.Single(list).Id);
+    }
+
+    [Fact]
+    public async Task ListAgenda_ReadsTheRangeAsInstants_SoALateClinicAppointmentStaysOnItsDay()
+    {
+        // 23:00 on Monday at the clinic is 04:00 UTC on Tuesday, but it belongs to Monday.
+        var (user, dentist) = NewDentist();
+        dentist.SetWeeklySchedule([new WorkingHours(DayOfWeek.Monday, new TimeOnly(20, 0), new TimeOnly(23, 59))]);
+        fixture.Save(user, dentist);
+        var lateAtNight = Save(ScheduleBlindly(fixture, dentist, SaveChair(), MondayAt(23, 0)));
+
+        var monday = await ListAgendaAsync(Monday, dentist.Id);
+        var tuesday = await ListAgendaAsync(new TimeRange(Monday.End, Monday.End.AddDays(1)), dentist.Id);
+
+        Assert.Equal(lateAtNight.Id, Assert.Single(monday).Id);
+        Assert.Empty(tuesday);
+    }
+
+    [Fact]
+    public async Task ListAgenda_WithoutADentist_ReturnsEveryDentist()
+    {
+        var (dentist, otherDentist) = (SaveDentist(), SaveDentist());
+        var first = Save(ScheduleBlindly(fixture, dentist, SaveChair(), MondayAt(9, 0).AddDays(14)));
+        var second = Save(ScheduleBlindly(fixture, otherDentist, SaveChair(), MondayAt(9, 0).AddDays(14)));
+
+        var ids = (await ListAgendaAsync(new TimeRange(Monday.Start.AddDays(14), Monday.End.AddDays(14)), null))
+            .Select(a => a.Id)
+            .ToList();
+
+        Assert.Contains(first.Id, ids);
+        Assert.Contains(second.Id, ids);
+    }
+
+    [Fact]
+    public async Task ListAgenda_ForADentist_LeavesOutTheOthers()
+    {
+        var (dentist, otherDentist) = (SaveDentist(), SaveDentist());
+        var own = Save(ScheduleBlindly(fixture, dentist, SaveChair(), MondayAt(9, 0)));
+        Save(ScheduleBlindly(fixture, otherDentist, SaveChair(), MondayAt(9, 0)));
+
+        var list = await ListAgendaAsync(Monday, dentist.Id);
+
+        Assert.Equal(own.Id, Assert.Single(list).Id);
+    }
+
+    [Fact]
+    public async Task ListAgenda_ForAnUnknownDentist_IsEmpty()
+    {
+        Assert.Empty(await ListAgendaAsync(Monday, Guid.CreateVersion7()));
     }
 
     // The loader with the real repositories: what it loads is enough for the domain to apply the rules.

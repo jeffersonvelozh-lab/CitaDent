@@ -1,4 +1,6 @@
+using System.Globalization;
 using Application.Appointments;
+using Domain.Common;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using WebApiRest.Contracts.Appointments;
@@ -16,6 +18,31 @@ namespace WebApiRest.Controllers;
 [Route("api/appointments")]
 public sealed class AppointmentsController : ControllerBase
 {
+    /// <summary>
+    /// The agenda: the appointments that touch the clinic days <paramref name="from"/> to <paramref name="to"/>
+    /// (both included, yyyy-MM-dd, at most 31 days), in every state, ordered by start, with the names of the
+    /// patient, dentist, chair and procedure. With <paramref name="dentistId"/>, only that dentist's; an unknown
+    /// dentist gives an empty list. Any signed-in role.
+    /// </summary>
+    [HttpGet]
+    [ProducesResponseType<IReadOnlyList<AgendaItemDto>>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status400BadRequest)]
+    public Task<IReadOnlyList<AgendaItemDto>> List(
+        [FromServices] ListAppointmentsHandler handler,
+        CancellationToken cancellationToken,
+        [FromQuery] string? from = null,
+        [FromQuery] string? to = null,
+        [FromQuery] Guid? dentistId = null) =>
+        handler.HandleAsync(
+            new ListAppointmentsQuery(ParseDay(from, nameof(from)), ParseDay(to, nameof(to)), dentistId),
+            cancellationToken);
+
+    // Only yyyy-MM-dd, as in ScheduleBlocksController: query binding would read "01/03/2031" in US order.
+    private static DateOnly ParseDay(string? value, string name) =>
+        DateOnly.TryParseExact(value?.Trim(), "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var day)
+            ? day
+            : throw new DomainException(DomainException.ValidationCode, $"The \"{name}\" day is required, as yyyy-MM-dd.");
+
     [HttpGet("{id:guid}")]
     [ProducesResponseType<AppointmentDto>(StatusCodes.Status200OK)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
